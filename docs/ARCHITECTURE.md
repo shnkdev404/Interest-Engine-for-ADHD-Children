@@ -1,0 +1,190 @@
+# SparkPath — Architecture
+
+As of 2026-10-16. Why each choice was made (and what was rejected) lives in [DECISIONS.md](DECISIONS.md); IDs like **D-03** point there.
+
+## 1. System at a glance
+
+One Next.js app on Vercel serves the adult-only UI and the API. A Claude tool-use agent in the backend calls Qloo (taste), Hindsight (memory) and our own Postgres (profiles, logs, numeric engagement).
+
+```mermaid
+flowchart LR
+  subgraph Client["Browser (adults only)"]
+    P[Parent views]
+    T[Teacher views]
+  end
+
+  subgraph Vercel["Next.js app on Vercel (D-02)"]
+    UI[React Server Components + client islands]
+    API[Route handlers / server actions]
+    AG[Planner agent<br/>Claude tool use (D-04)]
+    SC[Engagement scorer<br/>pure TypeScript (D-08)]
+    QC[Qloo client + cache]
+    SF[Safety layer<br/>age-fit + wording lint (D-11)]
+  end
+
+  DB[(Postgres<br/>Neon (D-06))]
+  HS[(Hindsight memory<br/>one bank per child (D-07))]
+  QL[[Qloo Insights API<br/>hackathon.api.qloo.com]]
+  CL[[Claude API]]
+
+  P --> UI
+  T --> UI
+  UI --> API
+  API --> AG
+  AG -->|tools| QC
+  AG -->|tools| SC
+  AG -->|tools| HS
+  AG --> CL
+  AG --> SF
+  QC --> QL
+  QC <--> DB
+  SC --> DB
+  API --> DB
+  API --> HS
+```
+
+## 2. Components
+
+| Component | Responsibility | Tech |
+| --- | --- | --- |
+| Web UI | Parent + teacher screens, demo mode, compare view | Next.js App Router, React, Tailwind, shadcn/ui (D-02, D-12) |
+| API layer | Auth/demo session, CRUD, plan generation endpoint (streamed), logging | Next.js route handlers + server actions |
+| Planner agent | Decides which tools to call, assembles the weekly plan | Anthropic SDK tool runner, `claude-sonnet-5-5` (D-04, D-05) |
+| Qloo client | `/search`, `/v2/tags`, `/v2/insights`; normalises + trims verbose fields; caches | TypeScript `fetch`, Postgres cache table (D-09) |
+| Engagement scorer | Weekly minutes/completions per interest; fading flag | Pure TS functions, unit-tested (D-08) |
+| Memory service | Wraps Hindsight: retain outcomes/notes, recall patterns, reflect | `@vectorize-io/hindsight-client` (D-07) |
+| Safety layer | Age-fit scoring of Qloo items, banned-word lint on all generated text, schema validation | `claude-haiku-5-5` + Zod + regex lint (D-11) |
+| Postgres | Adults, children, consent, interests, plans, tasks, logs, Qloo cache | Neon serverless Postgres + Drizzle ORM (D-06) |
+
+## 3. Request flows
+
+### 3.1 Generate weekly plan (the core loop)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as Parent
+  participant API as Next.js API
+  participant A as Planner agent (Claude)
+  participant S as Engagement scorer
+  participant H as Hindsight
+  participant Q as Qloo client
+  participant F as Safety layer
+
+  U->>API: POST /api/children/:id/plans (week)
+  API->>A: system prompt + child profile + rules
+  A->>S: get_engagement(childId, weeks=3)
+  S-->>A: per-interest trend, fading flags
+  A->>H: recall_memory("what held attention, what failed, formats")
+  H-->>A: notes + learned patterns
+  A->>Q: expand_interests(active interests, types)
+  Q-->>A: related books/shows/games/artists (cached)
+  alt an interest is fading
+    A->>Q: find_next_interests(fading interest, exclude tried)
+    Q-->>A: candidate adjacent interests
+  end
+  A->>F: age_fit(items, childAge)
+  F-->>A: kept items
+  A-->>API: WeeklyPlan JSON (Zod-validated)
+  API->>F: wording lint
+  API-->>U: streamed plan + "why this" sources
+```
+
+### 3.2 Log an outcome
+
+```mermaid
+sequenceDiagram
+  participant U as Parent
+  participant API as Next.js API
+  participant DB as Postgres
+  participant H as Hindsight
+  U->>API: POST /api/tasks/:id/outcome {status, minutes, note}
+  API->>DB: insert task_log (numbers live here)
+  API->>H: retain(bank=child, "Mission 'Fort maths' (Minecraft, maths, 20 min) — done. Note: asked for more", timestamp)
+  API-->>U: 200 + updated week stats
+```
+
+Numbers go to Postgres so the fading percentage is exact and reproducible; words go to Hindsight so the agent can recall meaning ("short missions beat long reading"). See D-08.
+
+### 3.3 Compare view (AI alone vs SparkPath)
+
+Two calls in parallel for the same child and request:
+
+1. **AI alone:** Claude, same model, given only the child's interest names. No tools.
+2. **SparkPath:** full agent run (3.1), served from cache in demo mode.
+
+Rendered side by side, each SparkPath item labelled with its Qloo source entity.
+
+### 3.4 Teacher lesson hooks
+
+`POST /api/classes/:id/hooks {lessonTopic}` → for each child (parallel, max 5): recall memory + cached Qloo expansion → Claude writes one hook per child for the same lesson.
+
+## 4. Agent tools
+
+| Tool | Input | Output | Backed by |
+| --- | --- | --- | --- |
+| `get_child_profile` | childId | age, active/paused interests, format prefs | Postgres |
+| `get_engagement` | childId, weeks | per-interest weekly minutes, completions, % change, `fading` bool | Engagement scorer |
+| `recall_memory` | childId, query | ranked memory snippets | Hindsight `recall` |
+| `resolve_interest` | name | Qloo entity id(s) + type | Qloo `/search` |
+| `expand_interests` | entity ids, target types, take | related entities per type | Qloo `/v2/insights` |
+| `find_next_interests` | fading entity id, exclude ids | adjacent interest candidates (games, shows, books, topics) | Qloo `/v2/insights` across types + `/v2/tags` |
+| `age_fit_filter` | items, age | kept items + reason for dropped | Haiku classifier |
+
+The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DESIGN.md](DESIGN.md) §3). Max 12 tool calls per run; hard timeout 45 s.
+
+## 5. Qloo integration detail
+
+- Base URL from env `QLOO_BASE_URL=https://hackathon.api.qloo.com`; key in `QLOO_API_KEY`, sent as `X-Api-Key`. Server-side only.
+- Every call is `GET`; params in the query string.
+- Cache key = `sha256(path + sorted query)`; stored in `qloo_cache` (Postgres) with no expiry for the hackathon (allowed by Qloo); never written to the repo.
+- Response trimming: keep `entity_id`, `name`, `types`, `properties.image`, `properties.short_description`, `properties.release_year`/`publication_year`, `tags` (names), `popularity`; drop `akas` and other verbose fields.
+- Guard against silent param ignoring: a startup self-test checks one known request per type returns non-empty `entities`.
+
+## 6. Hindsight integration detail
+
+- One bank per child: `bank_id = child_<uuid>` (isolation and one-call deletion; D-07).
+- Bank mission: "Track what keeps this child engaged: interests, task formats, times, and what caused frustration. Never infer or label medical conditions."
+- `retain` on every outcome log and every free-text adult note, with `timestamp` = event time and `context` = `"task_outcome"` / `"adult_note"`.
+- `recall` in the agent's `recall_memory` tool; `reflect` for the weekly insight's one-paragraph summary.
+- Deletion: "Forget this child" deletes the bank and all Postgres rows.
+
+## 7. Deployment
+
+| Piece | Where | Notes |
+| --- | --- | --- |
+| Web + API | Vercel (Hobby/Pro) | Node runtime for agent routes (`maxDuration` 60 s) |
+| Postgres | Neon | Branch per preview deploy |
+| Hindsight | Hindsight Cloud if access allows, else Docker on Railway/Fly with its own Postgres + pgvector | Decide day 1 (D-07) |
+| Secrets | Vercel env vars | `QLOO_API_KEY`, `ANTHROPIC_API_KEY`, `HINDSIGHT_URL`, `HINDSIGHT_API_KEY`, `DATABASE_URL` |
+
+## 8. Demo mode
+
+- `/demo` creates a sandboxed session (signed cookie) cloned from the Arjun seed; resets every visit, so every judge sees the same story.
+- Arjun's Qloo results are pre-warmed into the cache at deploy time (server-side, not in git).
+- Seed script inserts 3 weeks of task logs and retains matching notes into a fresh Hindsight bank.
+
+## 9. Security and privacy
+
+- Adult accounts only (email magic link via Auth.js); children have no login.
+- Consent checkbox and timestamp stored per child before any data is saved.
+- Minimal fields: nickname, age (years), interests, logs, notes. No photo, school, location or condition field.
+- All third-party calls server-side; no keys in the browser.
+- Data deletion: one action per child (Postgres cascade + Hindsight bank delete).
+- Logs never include notes text.
+
+## 10. Repository layout (planned)
+
+```
+/app                Next.js routes (parent, teacher, demo, api)
+/components         UI components
+/lib/agent          agent loop, tools, prompts
+/lib/qloo           client, types, trimming, cache
+/lib/memory         Hindsight wrapper
+/lib/engagement     scorer (pure, tested)
+/lib/safety         age-fit, wording lint, schemas
+/db                 Drizzle schema, migrations, seed (no Qloo data)
+/scripts            qloo-coverage-test.ts, prewarm-cache.ts
+/docs               these docs
+LICENSE             MIT
+```
