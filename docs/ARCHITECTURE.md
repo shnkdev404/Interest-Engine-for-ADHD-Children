@@ -139,7 +139,7 @@ Without a Claude key, or on failure, offline templates write the hooks from the 
 
 Age-fit filtering runs **inside** the Qloo tools rather than as a tool the model calls, so the model never sees unsuitable items. Every entity a Qloo tool returns is recorded for the run; the plan validator rejects any reference outside that set.
 
-The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DESIGN.md](DESIGN.md) §3), which is validated (schema, grounding, wording lint); a failure gets one repair turn with the errors listed. Limits: 12 tool calls per run (reserved before each parallel batch), 55 s deadline, `effort: medium`. Server-side refusal fallback (`fallbacks: "default"`) is on; set `PLANNER_FALLBACKS=off` where unsupported. Code: `lib/agent/`.
+The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DESIGN.md](DESIGN.md) §3), which is validated (schema, grounding, wording lint); a failure gets one repair turn with the errors listed. Limits: 12 tool calls per run (reserved before each parallel batch), 45 s deadline (so the offline fallback still fits Vercel's 60 s), `effort: medium`. Server-side refusal fallback (`fallbacks: "default"`) is on; set `PLANNER_FALLBACKS=off` where unsupported. Code: `lib/agent/`.
 
 ## 5. Qloo integration detail
 

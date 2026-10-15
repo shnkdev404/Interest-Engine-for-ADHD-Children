@@ -6,6 +6,8 @@ import { getDb, schema } from "@/db";
 import { AccessError, requireChild } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
+// Server actions here can run the planner agent (45 s deadline).
+export const maxDuration = 60;
 
 export default async function ChildLayout({
   children,

@@ -4,7 +4,7 @@
 // their child and memory) is removed first.
 import { eq } from "drizzle-orm";
 
-import { getDb, migrateDb, schema } from "@/db";
+import { getDb, schema } from "@/db";
 import { addDays, addWeeks, lastCompletedWeek } from "@/lib/dates";
 import { getMemory } from "@/lib/memory";
 import { noteMemory, outcomeMemory } from "@/lib/memory/outcome";
@@ -18,7 +18,6 @@ export async function seedArjun(
   adult: { role: "parent" | "teacher"; displayName: string } = { role: "parent", displayName: ARJUN.parent.displayName },
 ) {
   const db = await getDb();
-  await migrateDb(db);
   const memory = await getMemory();
   const qloo = await getQloo();
 

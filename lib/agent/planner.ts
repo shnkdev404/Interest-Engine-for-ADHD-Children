@@ -15,7 +15,7 @@ import { lintValue } from "@/lib/safety/lint";
 import { PLANNER_SYSTEM, plannerRequest } from "./prompts";
 import { runTool, toolParams, type ToolContext } from "./tools";
 
-export const LIMITS = { maxToolCalls: 12, maxRepairs: 1, deadlineMs: 55_000 } as const;
+export const LIMITS = { maxToolCalls: 12, maxRepairs: 1, deadlineMs: 45_000 /* + offline fallback fits Vercel's 60 s */ } as const;
 
 export type ToolCallLog = { name: string; ms: number; ok: boolean };
 

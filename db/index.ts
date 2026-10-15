@@ -29,15 +29,24 @@ async function connect(): Promise<DB> {
   if (url) {
     const { drizzle } = await import("drizzle-orm/postgres-js");
     const postgres = (await import("postgres")).default;
-    return drizzle(postgres(url, { max: 5, prepare: false }), { schema });
+    // Serverless: one connection per instance; Neon's pooler does the rest.
+    return drizzle(postgres(url, { max: process.env.VERCEL ? 1 : 5, prepare: false }), { schema });
+  }
+  if (process.env.VERCEL) {
+    // Serverless file systems are read-only and per-instance: PGlite would
+    // lose data between requests. Fail loudly instead.
+    throw new Error("DATABASE_URL is not set. Add the Neon connection string in Vercel project settings.");
   }
   const { PGlite } = await import("@electric-sql/pglite");
   const { drizzle } = await import("drizzle-orm/pglite");
+  const { migrate } = await import("drizzle-orm/pglite/migrator");
   const dir = process.env.PGLITE_DIR ?? LOCAL_DIR;
   // PGlite creates the leaf folder but not its parents.
   (await import("node:fs")).mkdirSync(path.dirname(dir), { recursive: true });
-  const client = new PGlite(dir);
-  return drizzle(client, { schema }) as unknown as DB;
+  const db = drizzle(new PGlite(dir), { schema });
+  // Local DB keeps itself current; production migrates at build (vercel-build).
+  await migrate(db, { migrationsFolder: MIGRATIONS });
+  return db as unknown as DB;
 }
 
 export async function migrateDb(db?: DB): Promise<void> {

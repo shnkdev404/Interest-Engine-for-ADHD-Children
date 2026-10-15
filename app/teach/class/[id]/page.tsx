@@ -11,6 +11,8 @@ import { AccessError, requireClass } from "@/lib/session";
 import { interestColor } from "@/lib/ui";
 
 export const dynamic = "force-dynamic";
+// Server actions here can run the lesson-hooks call.
+export const maxDuration = 60;
 
 // The class's interests share one colour list so each interest keeps its hue.
 export default async function ClassPage({ params }: { params: Promise<{ id: string }> }) {

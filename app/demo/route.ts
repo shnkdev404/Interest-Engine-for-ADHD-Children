@@ -5,6 +5,7 @@ import { setSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 // "Explore as Arjun's parent": a fresh private copy every visit (D-14).
 // POST from a form, so link prefetching can never create demos.

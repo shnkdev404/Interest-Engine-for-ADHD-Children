@@ -5,6 +5,7 @@ import { setSession } from "@/lib/session";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 30;
 
 // "Explore as a teacher": a private class of five, fresh every visit.
 export async function POST(request: Request) {

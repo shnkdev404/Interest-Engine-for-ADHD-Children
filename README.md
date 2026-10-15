@@ -17,6 +17,7 @@ Phases 0–4 built: parent UI (demo mode, This week, logging, Insights, Interest
 - [Technical design](docs/DESIGN.md)
 - [Decision log](docs/DECISIONS.md)
 - [UI / UX spec](docs/UI_UX.md)
+- [Deploy guide](docs/DEPLOY.md)
 
 ## Setup
 
@@ -40,6 +41,8 @@ Everything runs locally with no keys: Postgres falls back to embedded PGlite (`.
 | `npm run db:generate` | Generates a SQL migration after editing `db/schema.ts` |
 | `npm run plan` | Runs the planner agent for Arjun (needs `ANTHROPIC_API_KEY`); `--save` stores it, `--ask "…"` adds an adult request |
 | `npm run plan -- --tools-only` | Runs every agent tool once without the model: shows exactly what the agent sees |
+| `npm run demo:prewarm` | Qloo self-test, template Arjun with this week's plan, Qloo cache for the teacher demo |
+| `npm run db:migrate` | Applies migrations to `DATABASE_URL` (also runs on every Vercel build) |
 | `npm test` | Unit tests (scorer, mock Qloo, lint, planner loop with a scripted fake model) |
 | `npm run qloo:coverage` | Phase 0 Qloo coverage test (needs a key) |
 

@@ -151,7 +151,7 @@ async function agentHooks(
     output_config: { effort: "medium", format: zodOutputFormat(HooksOut) },
     system: SYSTEM,
     messages: [{ role: "user", content: `Lesson: ${topic} (${minutes} minutes).\nChildren:\n${JSON.stringify(brief)}` }],
-  });
+  }, { timeout: 40_000 }); // leaves room for the offline fallback within 60 s
   if (res.stop_reason === "refusal" || !res.parsed_output) throw new Error("No hooks returned");
 
   return ctx.map((c) => {
