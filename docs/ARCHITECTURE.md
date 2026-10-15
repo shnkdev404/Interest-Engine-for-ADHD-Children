@@ -123,15 +123,16 @@ Rendered side by side, each SparkPath item labelled with its Qloo source entity.
 
 | Tool | Input | Output | Backed by |
 | --- | --- | --- | --- |
-| `get_child_profile` | childId | age, active/paused interests, format prefs | Postgres |
-| `get_engagement` | childId, weeks | per-interest weekly minutes, completions, % change, `fading` bool | Engagement scorer |
-| `recall_memory` | childId, query | ranked memory snippets | Hindsight `recall` |
-| `resolve_interest` | name | Qloo entity id(s) + type | Qloo `/search` |
-| `expand_interests` | entity ids, target types, take | related entities per type | Qloo `/v2/insights` |
-| `find_next_interests` | fading entity id, exclude ids | adjacent interest candidates (games, shows, books, topics) | Qloo `/v2/insights` across types + `/v2/tags` |
-| `age_fit_filter` | items, age | kept items + reason for dropped | Haiku classifier |
+| `get_child_profile` | — | nickname, age, interests with status and start date | Postgres |
+| `get_engagement` | — | per-interest weekly minutes, % change, state (fading / holding / dipping / trial), formats that work / to avoid | Engagement scorer |
+| `recall_memory` | query | ranked memory snippets | Hindsight `recall` (or local fallback) |
+| `resolve_interest` | name | Qloo entity matches | Qloo `/search` |
+| `expand_interests` | interest labels, types, take | related entities per type, age-filtered, excluding tried items | Qloo `/v2/insights` |
+| `find_next_interests` | — (reads engagement) | up to 3 candidates: taste tag, bridged interests, example entities | Qloo `/v2/insights` (entities + `urn:tag` audience tags) |
 
-The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DESIGN.md](DESIGN.md) §3). Max 12 tool calls per run; hard timeout 45 s.
+Age-fit filtering runs **inside** the Qloo tools rather than as a tool the model calls, so the model never sees unsuitable items. Every entity a Qloo tool returns is recorded for the run; the plan validator rejects any reference outside that set.
+
+The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DESIGN.md](DESIGN.md) §3), which is validated (schema, grounding, wording lint); a failure gets one repair turn with the errors listed. Limits: 12 tool calls per run (reserved before each parallel batch), 55 s deadline, `effort: medium`. Server-side refusal fallback (`fallbacks: "default"`) is on; set `PLANNER_FALLBACKS=off` where unsupported. Code: `lib/agent/`.
 
 ## 5. Qloo integration detail
 

@@ -144,7 +144,7 @@ If Qloo returns too little (< 5 kept entities), fall back to tag-based discovery
 
 ## 8. Wording lint
 
-Banned in any generated or UI text (case-insensitive, whole words): `treat`, `treatment`, `therapy`, `therapeutic`, `diagnose`, `diagnosis`, `symptom`, `cure`, `clinical`, `disorder`, `medication`, `prescribe`.
+Banned in any generated or UI text (case-insensitive, whole words; bare "treat" is allowed because "earn a treat" is normal reward language): `treatment`, `therapy`, `therapeutic`, `diagnose`, `diagnosis`, `symptom`, `cure`, `clinical`, `disorder`, `medication`, `prescribe`.
 On a hit: one regeneration with the hit named; if it repeats, the offending sentence is dropped and logged. "ADHD" is allowed only in marketing copy, never in plan output.
 
 ## 9. API surface

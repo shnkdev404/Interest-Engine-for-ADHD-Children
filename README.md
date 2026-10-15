@@ -8,7 +8,7 @@ Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/). Qloo's taste 
 
 ## Status
 
-Phase 1 — data model, memory and the Arjun demo seed. Qloo runs on a hand-written mock until the hackathon key arrives. See [docs/PLAN.md](docs/PLAN.md).
+Phase 2 — the Claude planner agent (tools, validation, next-interest discovery). Qloo runs on a hand-written mock until the hackathon key arrives. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Docs
 
@@ -36,7 +36,9 @@ Everything runs locally with no keys: Postgres falls back to embedded PGlite (`.
 | --- | --- |
 | `npm run db:seed` | Migrates the DB and loads Arjun (3 weeks of history); prints the engagement read-back |
 | `npm run db:generate` | Generates a SQL migration after editing `db/schema.ts` |
-| `npm test` | Unit tests (engagement scorer, mock Qloo) |
+| `npm run plan` | Runs the planner agent for Arjun (needs `ANTHROPIC_API_KEY`); `--save` stores it, `--ask "…"` adds an adult request |
+| `npm run plan -- --tools-only` | Runs every agent tool once without the model: shows exactly what the agent sees |
+| `npm test` | Unit tests (scorer, mock Qloo, lint, planner loop with a scripted fake model) |
 | `npm run qloo:coverage` | Phase 0 Qloo coverage test (needs a key) |
 
 ## Qloo coverage test (Phase 0)

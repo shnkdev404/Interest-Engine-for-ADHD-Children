@@ -32,6 +32,8 @@ As of 2026-10-16. Constraints that drive most choices:
 | D-16 | Engagement data: adult-logged quick chips | Accepted |
 | D-17 | Plan output: validated JSON with mandatory Qloo refs | Accepted |
 | D-18 | Built-in "AI alone vs SparkPath" compare view | Accepted |
+| D-19 | Manual tool-use loop instead of the SDK tool runner | Accepted |
+| D-20 | Next interests must leave the fading franchise | Accepted |
 
 ---
 
@@ -282,6 +284,32 @@ As of 2026-10-16. Constraints that drive most choices:
 | Screenshot in README | Static, easy to doubt | Very low |
 
 **Why:** the hackathon says "if it works the same without Qloo, you're building the wrong thing"; this view lets judges verify it in one click.
+
+## D-19 · Agent loop implementation
+
+**Decision:** a hand-written tool-use loop over `client.beta.messages.create` (`lib/agent/planner.ts`), not the SDK's beta tool runner.
+
+| Option | Repair turn with full history | Hard tool-call cap | Per-run grounding set | Code to own |
+| --- | --- | --- | --- | --- |
+| **Manual loop** | Yes: we hold `messages` | Yes, reserved before each parallel batch | Yes (tool context) | ~100 lines |
+| SDK tool runner (`toolRunner` + `betaZodTool`) | Awkward: history lives in the runner | `max_iterations` counts turns, not calls | Possible via closures | Least |
+| Agent framework (LangGraph etc.) | Yes | Yes | Yes | Framework + learning time |
+
+**Why:** validation-then-repair is central (D-17), and it needs the exact conversation, thinking blocks included, to continue. The loop is small and fully unit-tested with a scripted fake client.
+**Why not the tool runner:** it's the recommended default for simple agents, but our control points (repair turns, call budget, grounding) sit outside what its hooks expose cleanly.
+**Revisit if:** we add streaming to the UI and the runner's `stream: true` mode would save significant code.
+
+## D-20 · Next interests must leave the fading franchise
+
+**Decision:** discovery drops any item whose name contains a fading interest's label (e.g. *Minecraft: The Island* when Minecraft is fading).
+
+| Option | Suggestions feel new | Risk |
+| --- | --- | --- |
+| **Drop same-franchise items** | Yes | Misses a spin-off the child might like (acceptable: the reading list can still use it) |
+| Keep them, rely on scoring | No: franchise items score highest because they share every tag | The "next obsession" is the old one |
+| Ask Claude to avoid them | Usually | Not guaranteed; not testable |
+
+**Why:** found in the first tool run on the seed. The fading interest's own products dominated the candidates, which defeats the feature's purpose.
 
 ---
 

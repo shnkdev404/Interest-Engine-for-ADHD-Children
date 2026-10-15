@@ -11,9 +11,11 @@
     "qloo:coverage": "tsx --env-file-if-exists=.env.local scripts/qloo-coverage-test.ts",
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
-    "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts"
+    "db:seed": "tsx --env-file-if-exists=.env.local scripts/seed.ts",
+    "plan": "tsx --env-file-if-exists=.env.local scripts/plan.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.134.0",
     "@electric-sql/pglite": "^0.5.10",
     "@vectorize-io/hindsight-client": "^1.0.0",
     "drizzle-orm": "^0.45.4",
