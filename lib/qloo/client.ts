@@ -70,8 +70,24 @@ export class QlooClient {
     }
   }
 
-  async search(query: string, take = 5): Promise<QlooEntity[]> {
-    return extractEntities(await this.get("/search", { query, take }));
+  async search(query: string, take = 5, types?: string[]): Promise<QlooEntity[]> {
+    return extractEntities(
+      await this.get("/search", { query, take, types: types?.join(",") }),
+    );
+  }
+
+  // Taste tags that describe the audience of the given entities (recipe:
+  // "Get the taste tags that describe an entity's audience"). Used to find
+  // what a fading interest's fans have in common.
+  async audienceTags(entityIds: string[], take = 15, tagTypes?: string[]): Promise<QlooTag[]> {
+    return extractTags(
+      await this.get("/v2/insights", {
+        "filter.type": "urn:tag",
+        "filter.tag.types": tagTypes?.join(","),
+        "signal.interests.entities": entityIds.join(","),
+        take,
+      }),
+    );
   }
 
   async tags(query: string, take = 10): Promise<QlooTag[]> {
@@ -85,6 +101,7 @@ export class QlooClient {
       "filter.type": p.filterType,
       "signal.interests.entities": p.entityIds?.join(","),
       "signal.interests.tags": p.tagIds?.join(","),
+      "signal.interests.tags.weights": p.tagWeights?.join(","),
       "filter.exclude.entities": p.excludeEntityIds?.join(","),
       "signal.demographics.age": p.ageBand,
       take: p.take ?? 10,

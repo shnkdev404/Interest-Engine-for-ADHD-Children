@@ -41,7 +41,10 @@ Judging criteria and where we score:
 
 From the [hackathon developer guide](https://docs.qloo.com/reference/qloo-llm-hackathon-developer-guide):
 
-- Base URL `https://hackathon.api.qloo.com`, header `X-Api-Key`. Hackathon keys fail on other URLs.
+- Key: request via the [hackathon key form](https://forms.gle/zz12orkLHTAneLGz6); issued by email within a few business days (check spam).
+- Base URL `https://hackathon.api.qloo.com`, header `X-Api-Key`. Hackathon keys fail on other URLs; the [recipes](https://docs.qloo.com/recipes) use `api.qloo.com`, so swap the base URL when copying them.
+- Response shapes: `/search` → flat `results[]`; `/v2/insights` → `results.entities[]`; `/v2/tags` and tag insights → `results.tags[]`.
+- `signal.demographics.age` takes adult bands such as `25_to_29`; kid ages aren't a band, which is why age is our own filter (D-10).
 - `GET /v2/insights` with required `filter.type`; signals via `signal.interests.entities` / `signal.interests.tags`.
 - Resolve names with `/search`; find tags with `/v2/tags`.
 - Entity types we use: `urn:entity:book`, `urn:entity:tv_show`, `urn:entity:video_game`, `urn:entity:movie`, `urn:entity:artist`.

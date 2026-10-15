@@ -19,6 +19,7 @@ import {
   ENTITY_TYPES,
   type EntityTypeKey,
   type QlooEntity,
+  type QlooTag,
 } from "../lib/qloo/types";
 
 // Interest → the entity type we expect /search to resolve it to. Sports and
@@ -66,6 +67,9 @@ type InterestResult = {
   label: string;
   resolved?: QlooEntity;
   candidates: QlooEntity[];
+  // Taste tags describing the interest's fans; feeds next-interest discovery.
+  audienceTags: QlooTag[];
+  audienceTagsError?: string;
   error?: string;
   types: TypeResult[];
   autoVerdict: "likely-pass" | "check" | "fail";
@@ -159,15 +163,25 @@ async function runInterest(label: string, prefer?: EntityTypeKey): Promise<Inter
   try {
     const candidates = await qloo.search(label, 5);
     const resolved = dryRun ? ({ entityId: `<${label}-id>`, name: label, types: [], tags: [] } as QlooEntity) : pickCandidate(candidates, prefer);
-    if (!resolved) return { label, candidates, types: [], autoVerdict: "fail", error: "No entity found by /search" };
-    const types = await Promise.all(typeKeys.map((t) => runType(resolved.entityId, t)));
-    return { label, resolved, candidates, types, autoVerdict: dryRun ? "check" : verdict(types) };
+    if (!resolved) return { label, candidates, audienceTags: [], types: [], autoVerdict: "fail", error: "No entity found by /search" };
+    const [types, tagsResult] = await Promise.all([
+      Promise.all(typeKeys.map((t) => runType(resolved.entityId, t))),
+      qloo.audienceTags([resolved.entityId], 15).then(
+        (tags) => ({ tags, error: undefined }),
+        (err: unknown) => ({ tags: [] as QlooTag[], error: err instanceof Error ? err.message : String(err) }),
+      ),
+    ]);
+    return {
+      label, resolved, candidates, types,
+      audienceTags: tagsResult.tags, audienceTagsError: tagsResult.error,
+      autoVerdict: dryRun ? "check" : verdict(types),
+    };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     if (err instanceof QlooError && err.status === 401) {
       throw new Error(`${msg}\nCheck QLOO_BASE_URL is https://hackathon.api.qloo.com and the key is sent as X-Api-Key.`);
     }
-    return { label, candidates: [], types: [], autoVerdict: "fail", error: msg };
+    return { label, candidates: [], audienceTags: [], types: [], autoVerdict: "fail", error: msg };
   }
 }
 
@@ -214,6 +228,12 @@ function toMarkdown(results: InterestResult[], startedAt: Date): string {
     if (r.candidates.length) {
       lines.push(`Search candidates: ${r.candidates.map((c) => `${esc(c.name)} (${c.types.join(", ")})`).join("; ")}`, "");
     }
+    if (r.audienceTags.length || r.audienceTagsError) {
+      lines.push(
+        `Audience taste tags: ${r.audienceTagsError ? `error: ${esc(r.audienceTagsError)}` : r.audienceTags.map((t) => esc(t.name)).join(", ")}`,
+        "",
+      );
+    }
     for (const t of r.types) {
       lines.push(`**${t.type}**${t.error ? ` — error: ${esc(t.error)}` : ""}`, "");
       if (!t.entities.length) {
@@ -242,7 +262,7 @@ async function main() {
     const r = await runInterest(label, prefer);
     results.push(r);
     const counts = r.types.map((t) => `${t.type}:${t.error ? "err" : t.count}`).join(" ");
-    console.log(r.error ? `ERROR ${r.error}` : `${r.resolved?.name} → ${counts} [${r.autoVerdict}]`);
+    console.log(r.error ? `ERROR ${r.error}` : `${r.resolved?.name} → ${counts} tags:${r.audienceTagsError ? "err" : r.audienceTags.length} [${r.autoVerdict}]`);
   }
 
   if (dryRun) return;

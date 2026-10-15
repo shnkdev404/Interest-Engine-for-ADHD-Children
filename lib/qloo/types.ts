@@ -14,6 +14,8 @@ export type QlooTag = {
   id: string;
   name: string;
   type?: string;
+  // Present on tag insights: how strongly the tag fits the signal's audience.
+  affinity?: number;
 };
 
 // Trimmed entity: only the fields SparkPath reads (see ARCHITECTURE.md §5).
@@ -34,6 +36,8 @@ export type InsightsParams = {
   filterType: EntityTypeUrn;
   entityIds?: string[];
   tagIds?: string[];
+  // Parallel to tagIds; higher pulls results harder toward that tag.
+  tagWeights?: number[];
   excludeEntityIds?: string[];
   ageBand?: string;
   take?: number;

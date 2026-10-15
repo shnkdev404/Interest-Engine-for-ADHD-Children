@@ -107,7 +107,7 @@ Triggered for each fading interest `F`, with the child's holding interests `H`:
 
 1. **Signals.** `signal.interests.entities = F + H` (so suggestions sit between the old love and what still works).
 2. **Breadth.** Call `/v2/insights` for `video_game`, `tv_show`, `book`, `movie` with `take=15` and `filter.exclude.entities` = every entity already in the child's interests or past plans.
-3. **Tags.** Collect tags across results; group results by their most-shared tags (e.g. building, sport, animals, space). Each group is a candidate interest.
+3. **Tags.** Ask Qloo which taste tags describe the fans of `F + H` (`/v2/insights?filter.type=urn:tag&signal.interests.entities=…`, recipe "Get the taste tags that describe an entity's audience"). Group step-2 results by the top audience tags they carry (e.g. building, sport, animals, space). Each group is a candidate interest. To widen a thin group, re-query with `signal.interests.tags` + `signal.interests.tags.weights` (higher weight pulls harder toward that tag).
 4. **Score** each candidate:
    `score = qloo_affinity_mean × age_fit × novelty × format_fit`
    - `qloo_affinity_mean`: mean rank-based score of its entities (Qloo order).

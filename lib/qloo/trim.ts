@@ -40,7 +40,8 @@ export function trimEntity(raw: unknown): QlooEntity | null {
     name,
     types,
     popularity: num(r.popularity),
-    affinity: num(query.affinity),
+    // Insights recipes show affinity under properties; tag insights use query.
+    affinity: num(query.affinity) ?? num(props.affinity),
     description: str(props.short_description) ?? str(props.description),
     image: str(image.url) ?? str(props.image),
     year:
@@ -76,6 +77,9 @@ export function extractTags(body: unknown): QlooTag[] {
     const tag = obj(t);
     const id = str(tag.id) ?? str(tag.tag_id);
     const name = str(tag.name);
-    return id && name ? [{ id, name, type: str(tag.type) }] : [];
+    const affinity = num(obj(tag.query).affinity);
+    return id && name
+      ? [{ id, name, type: str(tag.type) ?? str(tag.subtype), ...(affinity !== undefined && { affinity }) }]
+      : [];
   });
 }
