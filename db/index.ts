@@ -14,11 +14,14 @@ const MIGRATIONS = path.join(process.cwd(), "db", "migrations");
 // Local dev/test DB when DATABASE_URL is unset: embedded Postgres (PGlite).
 const LOCAL_DIR = path.join(process.cwd(), ".data", "pglite");
 
-let cached: Promise<DB> | undefined;
+// One connection per process, kept on globalThis: Next's dev server can load
+// this module more than once (hot reload, separate route bundles), and two
+// PGlite instances on the same folder don't see each other's writes.
+const g = globalThis as typeof globalThis & { __sparkpathDb?: Promise<DB> };
 
 export function getDb(): Promise<DB> {
-  cached ??= connect();
-  return cached;
+  g.__sparkpathDb ??= connect();
+  return g.__sparkpathDb;
 }
 
 async function connect(): Promise<DB> {

@@ -8,7 +8,7 @@ Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/). Qloo's taste 
 
 ## Status
 
-Phase 2 — the Claude planner agent (tools, validation, next-interest discovery). Qloo runs on a hand-written mock until the hackathon key arrives. See [docs/PLAN.md](docs/PLAN.md).
+Phase 3 — the parent UI: demo mode, This week with one-tap logging, Insights, Interests and Compare. Qloo runs on a hand-written mock until the hackathon key arrives. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Docs
 
@@ -27,8 +27,10 @@ npm install
 cp .env.example .env.local   # keys are optional for local dev
 npm run db:seed              # loads the Arjun demo persona
 npm test
-npm run dev
+npm run dev                  # open http://localhost:3000 and click "Explore as Arjun's parent"
 ```
+
+Don't run `db:seed` while `npm run dev` is running on the local PGlite database: embedded Postgres allows one process at a time.
 
 Everything runs locally with no keys: Postgres falls back to embedded PGlite (`.data/`), memory to a Postgres table, and Qloo to a mock catalog. Set `DATABASE_URL`, `HINDSIGHT_URL` and `QLOO_API_KEY` to use the real services.
 

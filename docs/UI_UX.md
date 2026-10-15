@@ -233,7 +233,9 @@ A6 card: interest icon, big title, 2–5 numbered steps with checkboxes, a "Miss
 | `--fading` | `#D99A00` (amber) | `#F2B632` | Fading banner (never red for a child) |
 | `--good` | `#2F9E6B` | `#5CC492` | Done, holding |
 
-Interest palette (8 fixed hues assigned in order, stable per interest): orange, teal, violet, green, blue, pink, gold, slate — all ≥ 3:1 against surface for bars/icons; text on them stays `--ink`.
+Interest palette (8 fixed hues assigned in order, stable per interest): orange, teal, violet, green, blue, pink, gold, berry. Validated in light and dark with the dataviz palette validator (lightness band, chroma, adjacent CVD ΔE ≥ 8, normal-vision ΔE ≥ 15, ≥ 3:1 vs surface); values in `app/globals.css`. Text on them stays `--ink`.
+
+Light-mode text tokens were darkened to pass WCAG AA: buttons use `--brand-strong` (#c94a16, 4.7:1 with white), fading text #8a6100, good #1f7a50, accent #1f6bc4.
 
 Typography: **Nunito** for headings (rounded, friendly), **Inter** for body. Scale 14 / 16 / 20 / 24 / 32. Body 16 px minimum on mobile; mission steps 18 px.
 
@@ -265,6 +267,15 @@ Motion: 150–200 ms ease-out; respect `prefers-reduced-motion` (no confetti, no
 | < 640 px | Single column, bottom tabs, bottom sheets | Read-only list of hooks |
 | 640–1024 | Two columns on Insights | Grid of 2–3 cards |
 | > 1024 | Sidebar + content, compare side by side | Sidebar + 4–5 card grid |
+
+## 10b. As built (Phase 3) — deviations from this spec
+
+- **Tour:** a dismissible 4-step card at the top of This week, not coach marks pointing at elements.
+- **Compare on mobile:** the two columns stack (AI alone first) instead of tabs, so nothing is hidden behind a tap.
+- **Interests:** read-only list with status pills and sparklines; adding and pausing comes later (use "Try it" on Insights).
+- **Mission detail:** inline expand on the card instead of a bottom sheet; print card and Swap are not built yet.
+- **Logging:** one tap saves with a default time (estimate for Done, half for Partly, 0 otherwise); minutes chips and a note refine it.
+- **Chart:** drawn at the container's real width so labels stay 12–13 px on phones; interests with no logged time (new trials) are left off rather than drawn as a flat zero line.
 
 ## 11. Usability checks before submission
 

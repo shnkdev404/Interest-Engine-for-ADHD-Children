@@ -1,6 +1,7 @@
 // Loads the Arjun demo persona into Postgres and memory. Used by
-// scripts/seed.ts, demo mode, and tests. Safe to re-run: the previous demo
-// parent (and, by cascade, their child and memory) is removed first.
+// scripts/seed.ts, demo mode (one private copy per visitor), and tests.
+// Safe to re-run: an existing parent with the same email (and, by cascade,
+// their child and memory) is removed first.
 import { eq } from "drizzle-orm";
 
 import { getDb, migrateDb, schema } from "@/db";
@@ -11,7 +12,7 @@ import { getQloo } from "@/lib/qloo/source";
 
 import { ARJUN, ARJUN_MISSIONS, type InterestKey } from "./arjun";
 
-export async function seedArjun(now = new Date()) {
+export async function seedArjun(now = new Date(), parentEmail: string = ARJUN.parent.email) {
   const db = await getDb();
   await migrateDb(db);
   const memory = await getMemory();
@@ -22,7 +23,7 @@ export async function seedArjun(now = new Date()) {
 
   // Reset: removing the parent cascades to the child and all their rows.
   const old = await db.query.adults.findFirst({
-    where: eq(schema.adults.email, ARJUN.parent.email),
+    where: eq(schema.adults.email, parentEmail),
   });
   if (old) {
     const kids = await db.select({ id: schema.children.id }).from(schema.children).where(eq(schema.children.adultId, old.id));
@@ -32,7 +33,7 @@ export async function seedArjun(now = new Date()) {
 
   const [parent] = await db
     .insert(schema.adults)
-    .values({ email: ARJUN.parent.email, displayName: ARJUN.parent.displayName, role: "parent" })
+    .values({ email: parentEmail, displayName: ARJUN.parent.displayName, role: "parent" })
     .returning();
   const [child] = await db
     .insert(schema.children)

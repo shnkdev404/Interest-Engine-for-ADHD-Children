@@ -94,9 +94,13 @@ export async function discoverNextInterests(input: DiscoveryInput): Promise<{
     const formatFit = tagFormats(tag).some((f) => input.formatsThatWork.includes(f)) ? 1.2 : 1;
     const tagAffinity = tag.affinity ?? 1;
 
+    // Same title across types (a book and its film) counts once.
+    const byName = fit
+      .sort((a, b) => (rankScore.get(b.entityId) ?? 0) - (rankScore.get(a.entityId) ?? 0))
+      .filter((e, i, arr) => arr.findIndex((x) => x.name.toLowerCase() === e.name.toLowerCase()) === i);
     candidates.push({
       tag,
-      entities: fit.sort((a, b) => (rankScore.get(b.entityId) ?? 0) - (rankScore.get(a.entityId) ?? 0)).slice(0, 5),
+      entities: byName.slice(0, 5),
       score: affinity * ageFit * novelty * formatFit * tagAffinity,
       parts: { affinity, ageFit, novelty, formatFit },
       sharedWith: signalEntities.filter((s) => s.tags.some((t) => t.id === tag.id || t.name === tag.name)).map((s) => s.label),

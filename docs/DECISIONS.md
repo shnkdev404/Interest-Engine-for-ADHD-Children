@@ -34,6 +34,7 @@ As of 2026-10-16. Constraints that drive most choices:
 | D-18 | Built-in "AI alone vs SparkPath" compare view | Accepted |
 | D-19 | Manual tool-use loop instead of the SDK tool runner | Accepted |
 | D-20 | Next interests must leave the fading franchise | Accepted |
+| D-21 | Offline template planner as fallback and for instant demos | Accepted |
 
 ---
 
@@ -310,6 +311,20 @@ As of 2026-10-16. Constraints that drive most choices:
 | Ask Claude to avoid them | Usually | Not guaranteed; not testable |
 
 **Why:** found in the first tool run on the seed. The fading interest's own products dominated the candidates, which defeats the feature's purpose.
+
+## D-21 · Offline template planner
+
+**Decision:** keep a deterministic planner (`lib/plan/fallback.ts`) that composes a grounded plan from the agent's own tools plus fixed mission templates. It's used when Claude is unavailable or fails, and to give new demos a plan instantly. Plans are labelled in the UI.
+
+| Option | Demo loads fast | Works without Claude | Plan quality | Honest to judges |
+| --- | --- | --- | --- | --- |
+| **Offline planner + label** | Yes | Yes | Template missions; Qloo picks and memory still real | Yes, labelled |
+| Always call the agent on demo start | No: 20–40 s wait | No | Best | Yes |
+| Commit a pre-written demo plan | Yes | Yes | Good | No: live Qloo data can't be committed (D-09), and it wouldn't react to logging |
+| Show an error when Claude is down | n/a | No | n/a | Yes, but the product breaks |
+
+**Why:** the first screen must load in seconds (PLAN.md definition of done), and the product shouldn't break when the model is slow or a key is missing. Grounding and the scorer are shared, so the offline plan still proves the Qloo + memory story.
+**Revisit if:** the prewarmed agent plan covers every demo week reliably; then the offline planner is only a failure fallback.
 
 ---
 

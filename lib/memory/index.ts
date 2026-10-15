@@ -81,7 +81,7 @@ const STOP = new Set(["the", "a", "an", "and", "or", "what", "which", "of", "to"
 // Light stemming plus a few domain synonyms, so "bored or upset" finds
 // "boring" and "melted down". Hindsight does real semantic recall.
 const SYNONYMS: Record<string, string> = {
-  bored: "bore", boring: "bore", dull: "bore",
+  bored: "bore", boring: "bore", boredom: "bore", dull: "bore",
   upset: "hard", meltdown: "hard", melted: "hard", cried: "hard", angry: "hard", frustrated: "hard",
   liked: "like", loved: "like", enjoyed: "like", wants: "like", asked: "like",
 };

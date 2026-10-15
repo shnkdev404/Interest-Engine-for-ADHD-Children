@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
+/* Design tokens: docs/UI_UX.md §7. Warm paper, spark orange, never red for a child. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --bg: #fffbf5;
+  --surface: #ffffff;
+  --surface-2: #f7f0e6;
+  --ink: #1f1a14;
+  --ink-muted: #6b6157;
+  --line: #ebe2d6;
+  --brand: #f2662b; /* logo, marks */
+  --brand-strong: #c94a16; /* button fill: white text passes AA (4.7:1) */
+  --brand-ink: #ffffff;
+  --accent: #1f6bc4;
+  --fading: #8a6100;
+  --fading-bg: #fff4d6;
+  --good: #1f7a50;
+  --good-bg: #e3f5ec;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Interest palette: assigned in order, stable per interest. Validated with
+     the dataviz validator (lightness, chroma, CVD, contrast) in both modes. */
+  --i1: #f2662b;
+  --i2: #13998f;
+  --i3: #7a5af5;
+  --i4: #3e9b3a;
+  --i5: #2e7dd7;
+  --i6: #d9468f;
+  --i7: #c08a00;
+  --i8: #b5476e;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  :root:not([data-theme="light"]) {
+    --bg: #16130f;
+    --surface: #211d18;
+    --surface-2: #2a251f;
+    --ink: #f4eee6;
+    --ink-muted: #b3a89c;
+    --line: #3a332b;
+    --brand: #ff8552;
+    --brand-strong: #ff8552;
+    --brand-ink: #1a0f08;
+    --accent: #6aa8f0;
+    --fading: #f2b632;
+    --fading-bg: #3a2e12;
+    --good: #5cc492;
+    --good-bg: #173326;
+    --i1: #e2602a;
+    --i2: #13a196;
+    --i3: #8a6cf5;
+    --i4: #47a542;
+    --i5: #3a86de;
+    --i6: #d9468f;
+    --i7: #c08a00;
+    --i8: #c2557c;
   }
 }
 
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-ink: var(--brand-ink);
+  --color-accent: var(--accent);
+  --color-fading: var(--fading);
+  --color-fading-bg: var(--fading-bg);
+  --color-good: var(--good);
+  --color-good-bg: var(--good-bg);
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+  --font-display: var(--font-nunito), var(--font-inter), system-ui, sans-serif;
+  --radius-card: 12px;
+}
+
+html {
+  background: var(--bg);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

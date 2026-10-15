@@ -161,7 +161,8 @@ The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DE
 
 ## 8. Demo mode
 
-- `/demo` creates a sandboxed session (signed cookie) cloned from the Arjun seed; resets every visit, so every judge sees the same story.
+- The landing page's button POSTs to `/demo` (POST so link prefetching can't create demos). It creates a private parent `demo-<uuid>@demo.sparkpath.local`, seeds a fresh Arjun under it, sets a signed `sp_session` cookie (HMAC with `SESSION_SECRET`), and redirects to This week. Every page and server action checks the child belongs to the cookie's parent (`lib/session.ts`). Demos older than 24 h are deleted on the next demo start.
+- This week's plan for a new demo is copied from the template Arjun's current-week plan when one exists (made by the agent at prewarm), otherwise built instantly by the offline planner (D-21), so the first screen never waits on the model.
 - Arjun's Qloo results are pre-warmed into the cache at deploy time (server-side, not in git).
 - Seed script inserts 3 weeks of task logs and retains matching notes into a fresh Hindsight bank.
 
@@ -174,6 +175,10 @@ The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DE
 - Data deletion: one action per child (Postgres cascade + Hindsight bank delete).
 - Logs never include notes text.
 
+## 9b. Offline planner
+
+`lib/plan/fallback.ts` builds a valid, grounded `WeeklyPlan` from the same tools the agent uses, with fixed mission templates instead of Claude. It is used when Claude isn't configured, when the agent fails (one notice line in the UI), and for instant demo plans. The UI labels such plans "Quick plan (made without the AI planner)". See D-21.
+
 ## 10. Local development and fallbacks
 
 Each external dependency has a local stand-in, chosen by environment variables, so the app and tests run with no keys:
@@ -183,6 +188,8 @@ Each external dependency has a local stand-in, chosen by environment variables, 
 | Postgres | `DATABASE_URL` | Embedded PGlite in `.data/pglite` (git-ignored) |
 | Hindsight | `HINDSIGHT_URL` (+ `HINDSIGHT_API_KEY`) | `memory_notes` table with keyword + recency recall; no `reflect` |
 | Qloo | `QLOO_API_KEY` / `QLOO_MODE` | `lib/qloo/mock.ts`: hand-written catalog, all ids prefixed `mock:` (not Qloo data) |
+
+In dev, the database handle lives on `globalThis`: Next can load a module more than once (hot reload, separate route bundles), and two PGlite instances on one folder don't see each other's writes.
 
 The Qloo cache stores the raw response body keyed by request hash; trimming happens on read.
 
