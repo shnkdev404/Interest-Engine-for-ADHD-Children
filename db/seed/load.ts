@@ -12,7 +12,11 @@ import { getQloo } from "@/lib/qloo/source";
 
 import { ARJUN, ARJUN_MISSIONS, type InterestKey } from "./arjun";
 
-export async function seedArjun(now = new Date(), parentEmail: string = ARJUN.parent.email) {
+export async function seedArjun(
+  now = new Date(),
+  parentEmail: string = ARJUN.parent.email,
+  adult: { role: "parent" | "teacher"; displayName: string } = { role: "parent", displayName: ARJUN.parent.displayName },
+) {
   const db = await getDb();
   await migrateDb(db);
   const memory = await getMemory();
@@ -33,7 +37,7 @@ export async function seedArjun(now = new Date(), parentEmail: string = ARJUN.pa
 
   const [parent] = await db
     .insert(schema.adults)
-    .values({ email: parentEmail, displayName: ARJUN.parent.displayName, role: "parent" })
+    .values({ email: parentEmail, displayName: adult.displayName, role: adult.role })
     .returning();
   const [child] = await db
     .insert(schema.children)

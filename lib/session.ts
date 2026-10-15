@@ -53,3 +53,13 @@ export async function requireChild(childId: string) {
   if (!child || child.adultId !== parentId) throw new AccessError("Not your child profile");
   return child;
 }
+
+// Classes belong to the teacher who created them.
+export async function requireClass(classId: string) {
+  const adultId = await getSessionParentId();
+  if (!adultId) throw new AccessError("Not signed in");
+  const db = await getDb();
+  const cls = await db.query.classes.findFirst({ where: eq(schema.classes.id, classId) });
+  if (!cls || cls.teacherId !== adultId) throw new AccessError("Not your class");
+  return cls;
+}

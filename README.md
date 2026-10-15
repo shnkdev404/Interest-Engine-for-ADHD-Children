@@ -8,7 +8,7 @@ Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/). Qloo's taste 
 
 ## Status
 
-Phase 3 — the parent UI: demo mode, This week with one-tap logging, Insights, Interests and Compare. Qloo runs on a hand-written mock until the hackathon key arrives. See [docs/PLAN.md](docs/PLAN.md).
+Phases 0–4 built: parent UI (demo mode, This week, logging, Insights, Interests, Compare) and the teacher class view (one lesson, a hook per child). Next: deploy and submit (Phase 5). Qloo runs on a hand-written mock until the hackathon key arrives. See [docs/PLAN.md](docs/PLAN.md).
 
 ## Docs
 

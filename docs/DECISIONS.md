@@ -35,6 +35,8 @@ As of 2026-10-16. Constraints that drive most choices:
 | D-19 | Manual tool-use loop instead of the SDK tool runner | Accepted |
 | D-20 | Next interests must leave the fading franchise | Accepted |
 | D-21 | Offline template planner as fallback and for instant demos | Accepted |
+| D-22 | Lesson hooks: one structured call per class, not an agent per child | Accepted |
+| D-23 | Self-hosted fonts instead of next/font/google | Accepted |
 
 ---
 
@@ -325,6 +327,30 @@ As of 2026-10-16. Constraints that drive most choices:
 
 **Why:** the first screen must load in seconds (PLAN.md definition of done), and the product shouldn't break when the model is slow or a key is missing. Grounding and the scorer are shared, so the offline plan still proves the Qloo + memory story.
 **Revisit if:** the prewarmed agent plan covers every demo week reliably; then the offline planner is only a failure fallback.
+
+## D-22 · Lesson hooks as a workflow
+
+**Decision:** gather each child's context in code, then make **one** structured-output Claude call for the whole class (`messages.parse` + Zod).
+
+| Option | Latency for 5 children | Cost | Consistency across the class | Grounding |
+| --- | --- | --- | --- | --- |
+| **Code gathers context, one structured call** | One model call (~10 s) | Lowest | High: one pass sees every child | Checked per child in code |
+| Planner agent per child | 5 agent runs | ~5× | Varies per run | Same, but more to check |
+| One call per child, no agent | 5 calls in parallel | ~2× | Varies | Same |
+
+**Why:** the steps are fixed (interest → picks → hook), so a model choosing tools adds nothing. The weekly planner stays agentic because there the model decides whether discovery is needed. One pass over the class also keeps hooks parallel in shape, matching UI_UX.md §4.4 (one lesson, the same content, a different theme per child).
+
+## D-23 · Self-hosted fonts
+
+**Decision:** Inter and Nunito come from `@fontsource-variable/*` npm packages instead of `next/font/google`.
+
+| Option | Build depends on network | Privacy | Effort |
+| --- | --- | --- | --- |
+| **@fontsource-variable packages** | No | No third-party font requests | Two imports |
+| next/font/google | Yes: downloads at build/dev time | Self-hosted after build | Built in |
+| System fonts only | No | Best | None, but loses the friendly display face |
+
+**Why:** two dev/build runs failed when Google Fonts couldn't be reached. A deploy shouldn't depend on that.
 
 ---
 

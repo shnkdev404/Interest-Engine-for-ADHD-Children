@@ -117,7 +117,14 @@ Rendered side by side, each SparkPath item labelled with its Qloo source entity.
 
 ### 3.4 Teacher lesson hooks
 
-`POST /api/classes/:id/hooks {lessonTopic}` → for each child (parallel, max 5): recall memory + cached Qloo expansion → Claude writes one hook per child for the same lesson.
+Server action `generateHooksAction(classId, {topic, minutes})` → `lib/hooks/generate.ts`. A workflow, not an agent (D-22):
+
+1. For each child in the class (in parallel): pick the main interest (not a fading one), read engagement formats, recall up to 3 adult notes, and get up to 6 age-fit Qloo picks (games, shows, books) for that interest.
+2. One `messages.parse` call with a Zod output schema writes all hooks (title, opener, first activity, optional `qlooEntityId`).
+3. Grounding per child: a cited entity must be in **that child's** picks, otherwise it's dropped. A hook with banned wording falls back to the offline template for that child.
+4. Saved as a row in `lessons` (`hooks` JSON). Teachers edit hooks inline; edits go through the same wording lint.
+
+Without a Claude key, or on failure, offline templates write the hooks from the same context.
 
 ## 4. Agent tools
 
@@ -162,6 +169,7 @@ The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DE
 ## 8. Demo mode
 
 - The landing page's button POSTs to `/demo` (POST so link prefetching can't create demos). It creates a private parent `demo-<uuid>@demo.sparkpath.local`, seeds a fresh Arjun under it, sets a signed `sp_session` cookie (HMAC with `SESSION_SECRET`), and redirects to This week. Every page and server action checks the child belongs to the cookie's parent (`lib/session.ts`). Demos older than 24 h are deleted on the next demo start.
+- "Teacher? Explore a sample class of five" POSTs to `/demo/teacher`: a private teacher ("Ms. Rao") with class 4B, Arjun (full history) plus four classmates with one interest each (`db/seed/classroom.ts`). Children are owned by the teacher's account in the demo; in a real school each parent opts in.
 - This week's plan for a new demo is copied from the template Arjun's current-week plan when one exists (made by the agent at prewarm), otherwise built instantly by the offline planner (D-21), so the first screen never waits on the model.
 - Arjun's Qloo results are pre-warmed into the cache at deploy time (server-side, not in git).
 - Seed script inserts 3 weeks of task logs and retains matching notes into a fresh Hindsight bank.

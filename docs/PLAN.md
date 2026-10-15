@@ -93,6 +93,17 @@ Also test `signal.demographics.age` (lowest band) and tag-based signals (via `/v
 
 **Fail plan:** if coverage is weak, lean on tag signals and the Claude age-fit filter; restrict the demo to interests that pass.
 
+## 5b. Progress (as of 2026-10-16)
+
+| Phase | Status |
+| --- | --- |
+| 0 | Scaffold, licence, repo done. Coverage test written; **not run** (Qloo key pending) |
+| 1 | Done: schema, Qloo client + cache + mock, memory (Hindsight + local), scorer, Arjun seed |
+| 2 | Done: planner agent, grounding, discovery, age-fit, lint. **Not yet run against real Claude** |
+| 3 | Done: parent UI, demo mode, offline planner |
+| 4 | Done: teacher class view with lesson hooks |
+| 5 | To do: keys, live runs, deploy (Vercel + Neon + Hindsight), prewarm, Devpost text |
+
 ## 6. Team split (suggested for 3)
 
 | Owner | Area |

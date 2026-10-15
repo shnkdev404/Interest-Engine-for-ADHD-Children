@@ -277,6 +277,15 @@ Motion: 150–200 ms ease-out; respect `prefers-reduced-motion` (no confetti, no
 - **Logging:** one tap saves with a default time (estimate for Done, half for Partly, 0 otherwise); minutes chips and a note refine it.
 - **Chart:** drawn at the container's real width so labels stay 12–13 px on phones; interests with no logged time (new trials) are left off rather than drawn as a flat zero line.
 
+### Teacher view as built (Phase 4)
+
+- Entry: "Teacher? Explore a sample class of five" on the landing page.
+- Class page: lesson form (topic, minutes, quick ideas) → grid of hook cards (child, interest colour + icon, title, "Open:", "Then:", Qloo pick). Before the first lesson the page shows the roster.
+- Edit inline per card; banned words are rejected with a plain message.
+- "Print or save as PDF" uses the browser's print dialog; print CSS hides the sidebar, form and buttons.
+- On phones the cards stack in one column and stay editable (the spec said read-only; editing works fine at that width).
+- Not built: a link back to the class from a child's pages (use Back), multiple classes per teacher in the demo.
+
 ## 11. Usability checks before submission
 
 - [ ] A first-time person finds the fading insight within 30 s of landing.

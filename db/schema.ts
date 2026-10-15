@@ -150,6 +150,19 @@ export const qlooCache = pgTable("qloo_cache", {
   createdAt: createdAt(),
 });
 
+// A teacher's lesson and the per-child hooks generated for it (Phase 4).
+export const lessons = pgTable("lessons", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  classId: uuid("class_id")
+    .notNull()
+    .references(() => classes.id, { onDelete: "cascade" }),
+  topic: text("topic").notNull(),
+  minutes: integer("minutes").notNull(),
+  hooks: jsonb("hooks").notNull(),
+  model: text("model").notNull(),
+  createdAt: createdAt(),
+});
+
 export const demoSessions = pgTable("demo_sessions", {
   id: uuid("id").primaryKey().defaultRandom(),
   childId: uuid("child_id")

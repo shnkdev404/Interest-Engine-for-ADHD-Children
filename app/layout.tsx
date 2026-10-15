@@ -1,10 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Nunito } from "next/font/google";
 
+// Self-hosted from npm: builds never depend on fetching Google Fonts.
+import "@fontsource-variable/inter";
+import "@fontsource-variable/nunito";
 import "./globals.css";
-
-const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
-const nunito = Nunito({ variable: "--font-nunito", subsets: ["latin"], weight: ["600", "700", "800"] });
 
 export const metadata: Metadata = {
   title: "SparkPath",
@@ -24,7 +23,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${nunito.variable} min-h-dvh antialiased`}>{children}</body>
+      <body className="min-h-dvh antialiased">{children}</body>
     </html>
   );
 }

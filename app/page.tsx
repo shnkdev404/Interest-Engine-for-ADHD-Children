@@ -34,6 +34,11 @@ export default function Landing() {
           </button>
           <p className="mt-2 text-sm text-ink-muted">No signup. Arjun, 9, is a sample child. Takes about 3 minutes.</p>
         </form>
+        <form action="/demo/teacher" method="post" className="mt-4">
+          <button type="submit" className="inline-flex min-h-11 items-center gap-1 font-semibold text-accent underline-offset-2 hover:underline">
+            Teacher? Explore a sample class of five <ArrowRight aria-hidden className="size-4" />
+          </button>
+        </form>
       </section>
 
       <section aria-labelledby="how" className="border-t border-line py-10">

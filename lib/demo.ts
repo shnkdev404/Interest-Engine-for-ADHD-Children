@@ -7,6 +7,7 @@ import { and, desc, eq, like, lt } from "drizzle-orm";
 
 import { getDb, schema } from "@/db";
 import { ARJUN } from "@/db/seed/arjun";
+import { seedClassroom } from "@/db/seed/classroom";
 import { seedArjun } from "@/db/seed/load";
 import { mondayOf } from "@/lib/dates";
 import { getMemory } from "@/lib/memory";
@@ -49,6 +50,12 @@ async function cleanupOldDemos() {
     for (const k of kids) await memory.forget(k.id).catch(() => {});
     await db.delete(schema.adults).where(eq(schema.adults.id, a.id));
   }
+}
+
+// Teacher demo: a private class of five (Arjun + four classmates).
+export async function createTeacherDemo(now = new Date()) {
+  await cleanupOldDemos().catch(() => {});
+  return seedClassroom(now, `teacher-${randomUUID()}${DEMO_DOMAIN}`);
 }
 
 export async function createDemo(now = new Date()) {
