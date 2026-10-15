@@ -44,3 +44,6 @@ next-env.d.ts
 # Qloo data must never be committed (hackathon rule) — local reports and fixtures only
 /reports/
 /fixtures/qloo/
+
+# local embedded Postgres
+/.data/

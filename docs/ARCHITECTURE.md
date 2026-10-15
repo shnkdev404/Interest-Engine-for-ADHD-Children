@@ -173,18 +173,30 @@ The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DE
 - Data deletion: one action per child (Postgres cascade + Hindsight bank delete).
 - Logs never include notes text.
 
-## 10. Repository layout (planned)
+## 10. Local development and fallbacks
+
+Each external dependency has a local stand-in, chosen by environment variables, so the app and tests run with no keys:
+
+| Dependency | Configured by | Fallback when unset |
+| --- | --- | --- |
+| Postgres | `DATABASE_URL` | Embedded PGlite in `.data/pglite` (git-ignored) |
+| Hindsight | `HINDSIGHT_URL` (+ `HINDSIGHT_API_KEY`) | `memory_notes` table with keyword + recency recall; no `reflect` |
+| Qloo | `QLOO_API_KEY` / `QLOO_MODE` | `lib/qloo/mock.ts`: hand-written catalog, all ids prefixed `mock:` (not Qloo data) |
+
+The Qloo cache stores the raw response body keyed by request hash; trimming happens on read.
+
+## 11. Repository layout
 
 ```
 /app                Next.js routes (parent, teacher, demo, api)
 /components         UI components
 /lib/agent          agent loop, tools, prompts
 /lib/qloo           client, types, trimming, cache
-/lib/memory         Hindsight wrapper
+/lib/memory         Hindsight wrapper + local fallback, outcome → memory sentences
 /lib/engagement     scorer (pure, tested)
 /lib/safety         age-fit, wording lint, schemas
-/db                 Drizzle schema, migrations, seed (no Qloo data)
-/scripts            qloo-coverage-test.ts, prewarm-cache.ts
+/db                 Drizzle schema, migrations, seed persona (no Qloo data)
+/scripts            qloo-coverage-test.ts, seed.ts
 /docs               these docs
 LICENSE             MIT
 ```

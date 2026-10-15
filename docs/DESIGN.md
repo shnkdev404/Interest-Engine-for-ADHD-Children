@@ -99,7 +99,9 @@ It is **holding** when `change > −15%`. It is **trial** for its first two week
 
 Arjun seed check: Minecraft weeks = 125, 80, 60 min → baseline 102.5 → change −41% → fading. Cricket steady → holding.
 
-Format preference uses the same maths per `format` over the last 3 weeks: a format "works" when completion ≥ 70% and it's in the top two by minutes per mission.
+Format preference looks at each `format` over the last 3 weeks. A format "works" when completion ≥ 70% over at least 2 missions with no hard moments; it is "to avoid" when completion < 50% or any mission in it ended in a hard moment. (Ranking by minutes per mission was dropped: it penalises short missions by design.)
+
+An interest whose change sits between −15% and −30%, or drops ≥30% without a completion drop or negative note, is **dipping**: shown, not acted on.
 
 ## 5. Next-interest discovery (the Qloo core)
 

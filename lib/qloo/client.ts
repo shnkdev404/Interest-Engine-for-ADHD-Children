@@ -13,7 +13,14 @@ export class QlooError extends Error {
 
 type Query = Record<string, string | number | undefined>;
 
+export type QlooCache = {
+  key(path: string, query: Query): string;
+  get(key: string): Promise<unknown | undefined>;
+  set(key: string, path: string, query: Query, response: unknown): Promise<void>;
+};
+
 export type QlooClientOptions = {
+  cache?: QlooCache;
   apiKey: string;
   baseUrl?: string;
   // Called with every request URL; used by --dry-run and logging.
@@ -49,6 +56,18 @@ export class QlooClient {
     this.opts.onRequest?.(url);
     if (this.opts.dryRun) return {};
 
+    const cache = this.opts.cache;
+    const cacheKey = cache?.key(path, query);
+    if (cache && cacheKey) {
+      const hit = await cache.get(cacheKey);
+      if (hit !== undefined) return hit;
+    }
+    const body = await this.fetchWithRetry(url, path);
+    if (cache && cacheKey) await cache.set(cacheKey, path, query, body);
+    return body;
+  }
+
+  private async fetchWithRetry(url: string, path: string): Promise<unknown> {
     const maxRetries = this.opts.maxRetries ?? 3;
     for (let attempt = 0; ; attempt++) {
       const res = await fetch(url, {
