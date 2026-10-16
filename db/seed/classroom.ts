@@ -33,7 +33,7 @@ export async function seedClassroom(now: Date, teacherEmail: string) {
       .returning();
     await memory.ensureBank(row.id, row.nickname);
     for (const label of c.interests) {
-      const [match] = await qloo.search(label, 1).catch(() => []);
+      const match = await qloo.resolve(label).catch(() => null);
       await db.insert(schema.interests).values({
         childId: row.id,
         label,

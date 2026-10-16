@@ -15,6 +15,7 @@ import path from "node:path";
 import { parseArgs } from "node:util";
 
 import { QlooError, qlooFromEnv } from "../lib/qloo/client";
+import { getQloo, type QlooSource } from "../lib/qloo/source";
 import {
   ENTITY_TYPES,
   type EntityTypeKey,
@@ -99,10 +100,13 @@ const interests = values.interests
     }))
   : DEFAULT_INTERESTS;
 
-const qloo = qlooFromEnv({
+const raw = qlooFromEnv({
   dryRun,
   onRequest: dryRun ? (url) => console.log("GET", url) : undefined,
 });
+// Live runs go through the same source the app uses (kid lens, smart
+// resolution, cache); dry runs just print raw requests.
+const Q = async (): Promise<Pick<QlooSource, "insights" | "audienceTags">> => (dryRun ? raw : getQloo());
 
 function pickCandidate(cands: QlooEntity[], prefer?: EntityTypeKey): QlooEntity | undefined {
   if (!prefer) return cands[0];
@@ -113,7 +117,7 @@ function pickCandidate(cands: QlooEntity[], prefer?: EntityTypeKey): QlooEntity 
 async function runType(entityId: string, type: EntityTypeKey): Promise<TypeResult> {
   const base: TypeResult = { type, count: 0, adult: 0, kid: 0, entities: [] };
   try {
-    const list = await qloo.insights({
+    const list = await (await Q()).insights({
       filterType: ENTITY_TYPES[type],
       entityIds: [entityId],
       excludeEntityIds: [entityId],
@@ -129,7 +133,7 @@ async function runType(entityId: string, type: EntityTypeKey): Promise<TypeResul
     };
 
     if (values.age) {
-      const aged = await qloo.insights({
+      const aged = await (await Q()).insights({
         filterType: ENTITY_TYPES[type],
         entityIds: [entityId],
         excludeEntityIds: [entityId],
@@ -161,12 +165,14 @@ function verdict(types: TypeResult[]): InterestResult["autoVerdict"] {
 
 async function runInterest(label: string, prefer?: EntityTypeKey): Promise<InterestResult> {
   try {
-    const candidates = await qloo.search(label, 5);
-    const resolved = dryRun ? ({ entityId: `<${label}-id>`, name: label, types: [], tags: [] } as QlooEntity) : pickCandidate(candidates, prefer);
+    const candidates = await raw.search(label, 5);
+    const resolved = dryRun
+      ? ({ entityId: `<${label}-id>`, name: label, types: [], tags: [] } as QlooEntity)
+      : ((await (await getQloo()).resolve(label)) ?? pickCandidate(candidates, prefer));
     if (!resolved) return { label, candidates, audienceTags: [], types: [], autoVerdict: "fail", error: "No entity found by /search" };
     const [types, tagsResult] = await Promise.all([
       Promise.all(typeKeys.map((t) => runType(resolved.entityId, t))),
-      qloo.audienceTags([resolved.entityId], 15).then(
+      (await Q()).audienceTags([resolved.entityId], 15).then(
         (tags) => ({ tags, error: undefined }),
         (err: unknown) => ({ tags: [] as QlooTag[], error: err instanceof Error ? err.message : String(err) }),
       ),

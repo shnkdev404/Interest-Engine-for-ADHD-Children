@@ -2,11 +2,13 @@ import { eq } from "drizzle-orm";
 import { ArrowRight, BookOpen, Music, Sun, Zap } from "lucide-react";
 import Link from "next/link";
 
+import { DailyCard } from "@/components/daily-card";
 import { MissionCard } from "@/components/mission-card";
 import { RegenerateButton } from "@/components/regenerate-button";
 import { Tour } from "@/components/tour";
 import { getDb, schema } from "@/db";
 import { mondayOf } from "@/lib/dates";
+import { getDrc, TARGET_SUGGESTIONS } from "@/lib/drc";
 import { getCurrentPlan } from "@/lib/plan/service";
 import { requireChild } from "@/lib/session";
 import { cap, FORMAT_LABEL, interestColor, weekLabel } from "@/lib/ui";
@@ -24,7 +26,7 @@ export default async function ThisWeek({
   const db = await getDb();
   const interests = await db.select().from(schema.interests).where(eq(schema.interests.childId, id));
   const labels = interests.map((i) => i.label);
-  const current = await getCurrentPlan(id);
+  const [current, drc] = await Promise.all([getCurrentPlan(id), getDrc(id)]);
 
   if (!current) {
     return (
@@ -41,6 +43,7 @@ export default async function ThisWeek({
   }
 
   const { plan } = current;
+  const rewardTitles = plan.rewards.map((r) => r.title);
   const works = new Set(plan.insight?.formatsThatWork ?? []);
   const fading = plan.insight?.fading ?? [];
   const why = (interest: string, format: string) => {
@@ -88,6 +91,13 @@ export default async function ThisWeek({
         </Link>
       )}
 
+      <section aria-labelledby="school">
+        <h2 id="school" className="sr-only">
+          School card
+        </h2>
+        <DailyCard childId={id} nickname={child.nickname} view={drc} suggestions={TARGET_SUGGESTIONS} rewardIdeas={rewardTitles} />
+      </section>
+
       <section aria-labelledby="missions">
         <h2 id="missions" className="text-sm font-semibold uppercase tracking-wide text-ink-muted">
           Missions · {current.missions.length}
@@ -111,12 +121,17 @@ export default async function ThisWeek({
                 why={why(interest, m.format)}
                 qlooRefs={m.qlooRefs}
                 log={m.log}
+                alt={m.alt}
+                probe={pm?.probe}
+                rewards={rewardTitles}
+                childName={child.nickname}
               />
             );
           })}
         </div>
       </section>
 
+      {plan.readingList.length > 0 && (
       <section aria-labelledby="reading">
         <h2 id="reading" className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">
           <BookOpen aria-hidden className="size-4" /> Reading
@@ -130,8 +145,10 @@ export default async function ThisWeek({
           ))}
         </ul>
       </section>
+      )}
 
       <div className="grid gap-8 md:grid-cols-2">
+        {plan.focusPlaylist.length > 0 && (
         <section aria-labelledby="playlist">
           <h2 id="playlist" className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">
             <Music aria-hidden className="size-4" /> Focus playlist
@@ -145,6 +162,7 @@ export default async function ThisWeek({
             ))}
           </ul>
         </section>
+        )}
 
         <section aria-labelledby="weekend">
           <h2 id="weekend" className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-ink-muted">

@@ -286,6 +286,12 @@ Motion: 150–200 ms ease-out; respect `prefers-reduced-motion` (no confetti, no
 - On phones the cards stack in one column and stay editable (the spec said read-only; editing works fine at that width).
 - Not built: a link back to the class from a child's pages (use Back), multiple classes per teacher in the demo.
 
+### Tier 1 additions as built
+
+- **This week:** School card at the top (targets with Yes / Not yet, five-day dots, reward status). Missions show a Warm-up or Retry badge, "Let Arjun choose" between two versions, and after Done a reward picker drawn from the plan's rewards.
+- **Insights:** each fading interest shows "How sure" (fairly sure / early sign, weeks of logs), the signals in plain words, and "Rest it for 3 weeks"; a Resting section; Breaks toggles for the last three weeks and this week.
+- **Teacher:** class page tabs "Lesson hooks" and "Daily cards"; each child's card in a grid, first use opens the setup form with suggested targets.
+
 ## 11. Usability checks before submission
 
 - [ ] A first-time person finds the fading insight within 30 s of landing.

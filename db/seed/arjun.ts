@@ -26,7 +26,7 @@ export const ARJUN = {
   ageYears: 9,
   parent: { email: "priya.demo@sparkpath.local", displayName: "Priya" },
   interests: [
-    { key: "minecraft" as const, label: "Minecraft", qlooType: "urn:entity:video_game", weeksAgoStarted: 20 },
+    { key: "minecraft" as const, label: "Minecraft", qlooType: "urn:entity:videogame", weeksAgoStarted: 20 },
     { key: "cricket" as const, label: "cricket", qlooType: null, weeksAgoStarted: 30 },
   ],
 };
@@ -105,3 +105,19 @@ export const ARJUN_MISSIONS: SeedMission[] = [
   ck(2, 6, "maths", "build", "Design a stadium seating plan and count seats", done(30, "Wants to do the stadium one again")),
   reading(2, 5, "reading_short", "Read 3 pages of a cricket comic", done(10)),
 ];
+
+// School card: started work and kind words go well; homework hand-in is the
+// sticking point, which the planner can pick up from memory.
+export const ARJUN_DRC = {
+  targets: ["Started work within 2 minutes of being asked", "Handed in homework", "Kind hands and kind words"],
+  threshold: 2,
+  reward: "20 minutes of LEGO Masters",
+  // Five school days, oldest first: [started, homework, kind]
+  pattern: [
+    [true, false, true],
+    [true, true, true],
+    [false, false, true],
+    [true, false, true],
+    [true, true, true],
+  ] as boolean[][],
+};

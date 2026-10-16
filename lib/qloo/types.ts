@@ -2,7 +2,8 @@
 export const ENTITY_TYPES = {
   book: "urn:entity:book",
   tv_show: "urn:entity:tv_show",
-  video_game: "urn:entity:video_game",
+  // The live API uses "videogame" (no underscore); the guide's "video_game" 400s.
+  video_game: "urn:entity:videogame",
   movie: "urn:entity:movie",
   artist: "urn:entity:artist",
 } as const;
@@ -36,6 +37,8 @@ export type InsightsParams = {
   filterType: EntityTypeUrn;
   entityIds?: string[];
   tagIds?: string[];
+  // filter.tags: restrict results to these tags (the kid lens uses this).
+  filterTags?: string[];
   // Parallel to tagIds; higher pulls results harder toward that tag.
   tagWeights?: number[];
   excludeEntityIds?: string[];

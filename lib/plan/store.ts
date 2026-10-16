@@ -24,6 +24,7 @@ export async function savePlan(childId: string, plan: WeeklyPlan, model: string)
         steps: m.steps,
         estMinutes: m.estMinutes,
         qlooRefs: m.qlooRefs,
+        alt: m.alt ?? null,
       })),
     );
   }

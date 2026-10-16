@@ -91,6 +91,10 @@ function signalTags(p: { entityIds?: string[]; tagIds?: string[] }): Map<string,
 export const mockQloo: QlooSource = {
   mode: "mock",
 
+  async resolve(label) {
+    return (await this.search(label, 1))[0] ?? null;
+  },
+
   async search(query, take = 5) {
     const q = query.toLowerCase();
     return ALL.filter((r) => r.name.toLowerCase().includes(q) || r.id.endsWith(`:${q}`))

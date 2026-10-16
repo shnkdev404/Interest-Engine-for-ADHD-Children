@@ -67,8 +67,8 @@ describe("scoreInterest edge cases", () => {
     expect(scoreInterest(base, [o(0, 60), o(1, 60), o(2, 20)], WEEK).state).toBe("dipping");
   });
 
-  it("a big drop with lower completion is fading", () => {
-    const s = scoreInterest(base, [o(0, 60), o(1, 60), o(2, 20), o(2, 0, "skipped")], WEEK);
+  it("a two-week decline with lower completion is fading", () => {
+    const s = scoreInterest(base, [o(0, 60), o(1, 30), o(2, 20), o(2, 0, "skipped")], WEEK);
     expect(s.state).toBe("fading");
   });
 

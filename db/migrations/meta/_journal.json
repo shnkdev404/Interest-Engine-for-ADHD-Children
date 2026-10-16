@@ -15,6 +15,13 @@
       "when": 1792098518597,
       "tag": "0001_lessons",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792144494688,
+      "tag": "0002_tier1",
+      "breakpoints": true
     }
   ]
 }

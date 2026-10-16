@@ -46,6 +46,7 @@ export const SUBJECT_LABEL: Record<string, string> = {
   chore: "Chore",
   routine: "Routine",
   other: "Activity",
+  break: "Warm-up",
 };
 
 // "Hard moment" is the UI word for the `meltdown` status (UI_UX.md §5.3).

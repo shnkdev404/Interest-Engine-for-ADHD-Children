@@ -103,6 +103,15 @@ Format preference looks at each `format` over the last 3 weeks. A format "works"
 
 An interest whose change sits between −15% and −30%, or drops ≥30% without a completion drop or negative note, is **dipping**: shown, not acted on.
 
+### v2 (built 2026-10-16, RESEARCH.md §2)
+
+The scorer now looks at up to **8 finished weeks**, skips weeks the adult marked as a **break**, and only uses weeks where the interest had missions. Display numbers stay as above (latest active week vs the two before), so Arjun still reads "−41%". Fading needs:
+
+- a **strong signal**: one-sided CUSUM on minutes per mission (slack 0.1, alarm 0.35) with **both** recent weeks ≥ 25% under the early baseline, **or** a Beta-Binomial completion drop P(recent < early − 0.15) > 0.8 with both recent weeks ≥ 10 points under the early rate; **and**
+- **corroboration**: a completion drop or a negative note.
+
+Confidence is "fairly sure" with ≥ 4 active weeks and ≥ 2 signals, otherwise "early sign". A faded interest can be **rested** for 3 weeks (`dormant`, `resurfaceOn`); when due, plans must include one probe mission (`probe: true`), and a done/partial probe reactivates it. Thresholds were tuned on the simulator in `lib/eval/fading-sim.ts` (D-24); `scoreInterestV1` is kept for comparison.
+
 ## 5. Next-interest discovery (the Qloo core)
 
 Triggered for each fading interest `F`, with the child's holding interests `H`:

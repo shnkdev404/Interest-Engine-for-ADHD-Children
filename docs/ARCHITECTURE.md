@@ -130,7 +130,7 @@ Without a Claude key, or on failure, offline templates write the hooks from the 
 
 | Tool | Input | Output | Backed by |
 | --- | --- | --- | --- |
-| `get_child_profile` | — | nickname, age, interests with status and start date | Postgres |
+| `get_child_profile` | — | nickname, age, interests with status (incl. resting + retryDue), school card results for the last 5 school days | Postgres |
 | `get_engagement` | — | per-interest weekly minutes, % change, state (fading / holding / dipping / trial), formats that work / to avoid | Engagement scorer |
 | `recall_memory` | query | ranked memory snippets | Hindsight `recall` (or local fallback) |
 | `resolve_interest` | name | Qloo entity matches | Qloo `/search` |
@@ -147,6 +147,9 @@ The agent ends by calling no tool and returning `WeeklyPlan` JSON (schema in [DE
 - Every call is `GET`; params in the query string.
 - Cache key = `sha256(path + sorted query)`; stored in `qloo_cache` (Postgres) with no expiry for the hackathon (allowed by Qloo); never written to the repo.
 - Response trimming: keep `entity_id`, `name`, `types`, `properties.image`, `properties.short_description`, `properties.release_year`/`publication_year`, `tags` (names), `popularity`; drop `akas` and other verbose fields.
+- **Kid lens** (D-10): every live insights call gets `filter.tags` by type unless the caller sets its own — books `childrens`, TV/films `family`, artists `instrumental`. Games have no kid tag and depend on the age-fit filter.
+- **Resolution:** `resolve(label)` skips places, localities and people, prefers brands then media, and keeps the first candidate Qloo accepts as a signal (cached per process).
+- **Shapes:** insights entities carry the real type in `subtype`; `/search` uses `types`. The trimmer puts the most specific type first.
 - Guard against silent param ignoring: a startup self-test checks one known request per type returns non-empty `entities`.
 
 ## 6. Hindsight integration detail

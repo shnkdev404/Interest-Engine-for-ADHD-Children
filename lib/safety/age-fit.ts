@@ -94,7 +94,15 @@ export async function filterAgeFit(entities: QlooEntity[], age: number): Promise
         verdicts = pending.map((e) => ruleFit(e) ?? { entityId: e.entityId, fit: "unsure", reason: "classifier unavailable", by: "rules" });
       }
     } else {
-      verdicts = pending.map((e) => ruleFit(e) ?? { entityId: e.entityId, fit: "unsure", reason: "no classifier configured", by: "rules" });
+      // Without the classifier, live artists still pass: they arrive through the
+      // instrumental-only kid lens (lib/qloo/source.ts), so lyrics aren't a risk.
+      verdicts = pending.map(
+        (e) =>
+          ruleFit(e) ??
+          (e.types[0] === "urn:entity:artist"
+            ? { entityId: e.entityId, fit: "yes", reason: "instrumental focus music (kid lens)", by: "rules" }
+            : { entityId: e.entityId, fit: "unsure", reason: "no classifier configured", by: "rules" }),
+      );
     }
     for (const v of verdicts) {
       results.set(v.entityId, v);

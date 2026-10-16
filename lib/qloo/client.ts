@@ -120,6 +120,7 @@ export class QlooClient {
       "filter.type": p.filterType,
       "signal.interests.entities": p.entityIds?.join(","),
       "signal.interests.tags": p.tagIds?.join(","),
+      "filter.tags": p.filterTags?.join(","),
       "signal.interests.tags.weights": p.tagWeights?.join(","),
       "filter.exclude.entities": p.excludeEntityIds?.join(","),
       "signal.demographics.age": p.ageBand,

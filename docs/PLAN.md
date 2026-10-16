@@ -97,12 +97,13 @@ Also test `signal.demographics.age` (lowest band) and tag-based signals (via `/v
 
 | Phase | Status |
 | --- | --- |
-| 0 | Scaffold, licence, repo done. Coverage test written; **not run** (Qloo key pending) |
+| 0 | Done: coverage test run on the live API → **GO**, 7/10 interests usable (D-10); kid lens, resolver and type fixes in |
 | 1 | Done: schema, Qloo client + cache + mock, memory (Hindsight + local), scorer, Arjun seed |
 | 2 | Done: planner agent, grounding, discovery, age-fit, lint. **Not yet run against real Claude** |
 | 3 | Done: parent UI, demo mode, offline planner |
 | 4 | Done: teacher class view with lesson hooks |
-| 5 | To do: keys, live runs, deploy (Vercel + Neon + Hindsight), prewarm, Devpost text |
+| 5 | To do: Claude key + real agent runs, deploy (Vercel + Neon + Hindsight), prewarm, Devpost text |
+| + | Tier 1 research additions built (RESEARCH.md status): fading v2, school card, eval harness, choice, rewards, movement break |
 
 ## 6. Team split (suggested for 3)
 

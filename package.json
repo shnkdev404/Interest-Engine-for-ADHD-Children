@@ -15,7 +15,8 @@
     "plan": "tsx --env-file-if-exists=.env.local scripts/plan.ts",
     "db:migrate": "tsx --env-file-if-exists=.env.local scripts/migrate.ts",
     "vercel-build": "tsx scripts/migrate.ts && next build --turbopack",
-    "demo:prewarm": "tsx --env-file-if-exists=.env.local scripts/prewarm.ts"
+    "demo:prewarm": "tsx --env-file-if-exists=.env.local scripts/prewarm.ts",
+    "eval": "tsx --env-file-if-exists=.env.local scripts/eval.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",

@@ -168,8 +168,12 @@ function validate(text: string, ctx: ToolContext): Validation {
     return { ok: false, errors: parsed.error.issues.slice(0, 12).map((i) => `${i.path.join(".") || "$"}: ${i.message}`) };
   }
   const fading = ctx.engagement?.interests.some((i) => i.state === "fading") ?? false;
+  const thisWeek = ctx.now.toISOString().slice(0, 10);
+  const probeDue = ctx.interests
+    .filter((i) => i.status === "dormant" && !!i.resurfaceOn && i.resurfaceOn <= thisWeek)
+    .map((i) => i.label);
   const errors = [
-    ...checkGrounding(parsed.data, ctx.seen, { requireNextInterests: fading }),
+    ...checkGrounding(parsed.data, ctx.seen, { requireNextInterests: fading, probeDue }),
     ...lintValue(parsed.data).map((h) => `${h.path}: remove the word "${h.word}"`),
   ];
   return errors.length ? { ok: false, errors } : { ok: true, plan: parsed.data };

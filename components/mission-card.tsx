@@ -1,9 +1,9 @@
 "use client";
 
-import { Check, ChevronDown, Info } from "lucide-react";
+import { Check, ChevronDown, Gift, Info } from "lucide-react";
 import { useState, useTransition } from "react";
 
-import { logOutcomeAction } from "@/app/actions";
+import { chooseRewardAction, logOutcomeAction } from "@/app/actions";
 import { cx, FORMAT_LABEL, interestIcon, STATUS_LABEL, SUBJECT_LABEL } from "@/lib/ui";
 
 type Status = keyof typeof STATUS_LABEL;
@@ -20,7 +20,11 @@ export type MissionCardProps = {
   color: string;
   why: string;
   qlooRefs: { name: string }[];
-  log: { status: Status; minutes: number; note: string | null } | null;
+  log: { status: Status; minutes: number; note: string | null; variant?: string | null } | null;
+  childName?: string;
+  alt?: { title: string; steps: string[] } | null;
+  probe?: boolean;
+  rewards?: string[];
 };
 
 const MINUTE_CHIPS = [5, 10, 15, 20, 30];
@@ -32,14 +36,18 @@ export function MissionCard(p: MissionCardProps) {
   const [refining, setRefining] = useState(false);
   const [note, setNote] = useState("");
   const [pending, start] = useTransition();
+  const [variant, setVariant] = useState<"a" | "b">(p.log?.variant === "b" ? "b" : "a");
+  const [reward, setReward] = useState<string | null>(null);
   const Icon = interestIcon(p.interest);
+  const title = variant === "b" && p.alt ? p.alt.title : p.title;
+  const steps = variant === "b" && p.alt ? p.alt.steps : p.steps;
 
   // One tap saves with a sensible default; minutes and a note are optional.
   const save = (status: Status, minutes?: number, withNote?: string) => {
     const m = minutes ?? (status === "done" ? p.estMinutes : status === "partial" ? Math.round(p.estMinutes / 2) : 0);
     setLog({ status, minutes: m, note: withNote ?? log?.note ?? null });
     setRefining(true);
-    start(() => logOutcomeAction(p.childId, p.id, { status, minutes: m, note: withNote || undefined }));
+    start(() => logOutcomeAction(p.childId, p.id, { status, minutes: m, note: withNote || undefined, variant: p.alt ? variant : undefined }));
   };
 
   return (
@@ -50,7 +58,11 @@ export function MissionCard(p: MissionCardProps) {
           <div className="flex items-start gap-3">
             <Icon aria-hidden className="mt-0.5 size-5 shrink-0" style={{ color: p.color }} />
             <div className="min-w-0 flex-1">
-              <h3 className="font-semibold leading-snug">{p.title}</h3>
+              <h3 className="font-semibold leading-snug">
+                {p.subject === "break" && <span className="mr-1.5 rounded-full bg-surface-2 px-2 py-0.5 align-middle text-xs font-semibold">Warm-up</span>}
+                {p.probe && <span className="mr-1.5 rounded-full bg-surface-2 px-2 py-0.5 align-middle text-xs font-semibold">Retry</span>}
+                {title}
+              </h3>
               <p className="mt-0.5 text-sm text-ink-muted">
                 {SUBJECT_LABEL[p.subject] ?? p.subject} · {p.estMinutes} min · {FORMAT_LABEL[p.format] ?? p.format} ·{" "}
                 {p.interest}
@@ -67,9 +79,30 @@ export function MissionCard(p: MissionCardProps) {
             </button>
           </div>
 
+          {p.alt && (
+            <div className="mt-3 flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Which version?">
+              <span className="text-sm text-ink-muted">Let {p.childName ?? "them"} choose:</span>
+              {(["a", "b"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={variant === v}
+                  onClick={() => setVariant(v)}
+                  className={cx(
+                    "min-h-11 max-w-full rounded-full border px-3 text-left text-sm",
+                    variant === v ? "border-ink bg-surface-2 font-semibold" : "border-line hover:bg-surface-2",
+                  )}
+                >
+                  {v === "a" ? p.title : p.alt!.title}
+                </button>
+              ))}
+            </div>
+          )}
+
           {open && (
             <ol className="mt-3 list-decimal space-y-1 pl-6 text-lg leading-relaxed">
-              {p.steps.map((s) => (
+              {steps.map((s) => (
                 <li key={s}>{s}</li>
               ))}
             </ol>
@@ -103,6 +136,30 @@ export function MissionCard(p: MissionCardProps) {
               <p className="text-sm font-medium" role="status">
                 Got it. Next week&apos;s plan will use this.
               </p>
+              {(log.status === "done" || log.status === "partial") && !!p.rewards?.length && (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1 text-sm text-ink-muted">
+                    <Gift aria-hidden className="size-4" /> {reward ? "Enjoy:" : "Pick a reward:"}
+                  </span>
+                  {reward ? (
+                    <span className="rounded-full bg-good-bg px-3 py-1.5 text-sm font-semibold text-good">{reward}</span>
+                  ) : (
+                    p.rewards.map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => {
+                          setReward(r);
+                          start(() => chooseRewardAction(p.childId, p.id, r));
+                        }}
+                        className="min-h-11 rounded-full border border-line bg-surface px-3 text-sm hover:bg-surface-2"
+                      >
+                        {r}
+                      </button>
+                    ))
+                  )}
+                </div>
+              )}
               {(log.status === "done" || log.status === "partial") && (
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="text-sm text-ink-muted">Time on it:</span>

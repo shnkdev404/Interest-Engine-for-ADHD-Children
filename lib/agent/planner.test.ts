@@ -31,6 +31,7 @@ function plan(overrides: Record<string, unknown> = {}) {
       mission("Kit check before bed", "cricket", "short_mission"),
       mission("Build a block bridge, count the bricks", "Minecraft", "build"),
       mission("Scoreboard sums", "cricket", "short_mission"),
+      { ...mission("Bowling-action warm-up", "cricket", "movement"), subject: "break", estMinutes: 10 },
     ],
     readingList: [
       { title: "The Wild Robot", why: "Survival and building, short chapters", qlooRef: ref("mock:b:wild-robot", "The Wild Robot", "book") },
@@ -43,6 +44,10 @@ function plan(overrides: Record<string, unknown> = {}) {
       { title: "Joe Hisaishi", why: "Calm instrumental", qlooRef: ref("mock:a:hisaishi", "Joe Hisaishi", "artist") },
     ],
     weekendActivity: { title: "Backyard test match", why: "Cricket is holding strong", qlooRefs: [] },
+    rewards: [
+      { title: "A Lagaan scene", why: "Cricket film night, ten minutes", qlooRef: ref("mock:m:lagaan", "Lagaan", "movie") },
+      { title: "15 minutes of cricket", why: "Still a favourite", qlooRef: null },
+    ],
     nextInterests: [
       { label: "Building games", bridge: "Fans of Minecraft and cricket also love building sims", starterMission: "Plan a farm on graph paper", qlooRefs: [ref("mock:g:terraria", "Terraria", "video_game")] },
       { label: "Survival stories", bridge: "Adventure fans love The Wild Robot", starterMission: "Draw the robot's island map", qlooRefs: [ref("mock:b:wild-robot", "The Wild Robot", "book")] },

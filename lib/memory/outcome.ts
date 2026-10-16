@@ -18,13 +18,18 @@ export function outcomeMemory(o: {
   status: keyof typeof STATUS_WORDS;
   minutes: number;
   occurredAt: Date;
+  // Set when the mission offered two versions: the alternative's title if the
+  // child picked it, null if they picked the main one.
+  choseAlternative?: string | null;
 }): MemoryItem {
   const theme = o.interest ? `${o.interest}-themed ` : "";
   const time = o.minutes > 0 ? `, about ${o.minutes} minutes` : "";
+  const choice =
+    o.choseAlternative === undefined ? "" : o.choseAlternative ? " They chose the alternative version." : " They chose the main version.";
   return {
     context: "task_outcome",
     occurredAt: o.occurredAt,
-    content: `${o.nickname} ${STATUS_WORDS[o.status]} the ${theme}${o.subject} mission "${o.title}" (format: ${o.format.replace(/_/g, " ")}${time}).`,
+    content: `${o.nickname} ${STATUS_WORDS[o.status]} the ${theme}${o.subject} mission "${o.title}" (format: ${o.format.replace(/_/g, " ")}${time}).${choice}`,
   };
 }
 

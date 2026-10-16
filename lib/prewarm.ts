@@ -24,7 +24,7 @@ export async function prewarm(now = new Date()): Promise<PrewarmReport> {
 
   // 1. Self-test against a known interest.
   const selfTest: PrewarmReport["selfTest"] = {};
-  const [anchor] = await qloo.search("Minecraft", 1);
+  const anchor = await qloo.resolve("Minecraft");
   if (!anchor) throw new Error("Qloo self-test: /search returned nothing for Minecraft");
   for (const t of Object.keys(ENTITY_TYPES) as EntityTypeKey[]) {
     try {
@@ -43,7 +43,7 @@ export async function prewarm(now = new Date()): Promise<PrewarmReport> {
   const warmed: string[] = [];
   for (const c of CLASSMATES) {
     for (const label of c.interests) {
-      const [hit] = await qloo.search(label, 1);
+      const hit = await qloo.resolve(label);
       if (!hit) continue;
       await Promise.all(
         (["video_game", "tv_show", "book"] as const).map((t) =>

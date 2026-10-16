@@ -23,7 +23,7 @@ As of 2026-10-16. Constraints that drive most choices:
 | D-07 | Memory: Hindsight, one bank per child | Accepted (hosting Proposed) |
 | D-08 | Numbers in Postgres, meaning in Hindsight; deterministic fading score | Accepted |
 | D-09 | Qloo cache in Postgres, never in git | Accepted |
-| D-10 | Qloo signal strategy: entities first, tags second, age as filter | Proposed (Phase 0 test) |
+| D-10 | Qloo signal strategy: entities first, kid lens via filter.tags, age-fit filter | Accepted (Phase 0 test, 2026-10-16) |
 | D-11 | Safety: age-fit filter + wording lint + adult approval | Accepted |
 | D-12 | UI kit: Tailwind + shadcn/ui | Accepted |
 | D-13 | Hosting: Vercel | Accepted |
@@ -37,6 +37,8 @@ As of 2026-10-16. Constraints that drive most choices:
 | D-21 | Offline template planner as fallback and for instant demos | Accepted |
 | D-22 | Lesson hooks: one structured call per class, not an agent per child | Accepted |
 | D-23 | Self-hosted fonts instead of next/font/google | Accepted |
+| D-24 | Fading v2: sustained signals, tuned on a simulator | Accepted |
+| D-25 | School card: per school day, shared by parent and teacher | Accepted |
 
 ---
 
@@ -185,6 +187,17 @@ As of 2026-10-16. Constraints that drive most choices:
 
 **Why:** Qloo's strength is "fans of X also love Y"; kids' interests are concrete entities (games, shows, characters), which is exactly where that works. Age bands in Qloo are aimed at adults.
 **Revisit if:** the coverage test shows <7/10 interests returning usable kid results.
+
+**Phase 0 result (2026-10-16, live hackathon API):** GO — 7/10 interests usable for a 9-year-old (Minecraft, cricket, dinosaurs, Pokémon, Bluey, LEGO, Roblox); Harry Potter and space weak; football failed on resolution. What the test found and what changed:
+
+| Finding | Fix |
+| --- | --- |
+| `filter.type=urn:entity:video_game` returns 400; the live API uses `urn:entity:videogame` | `ENTITY_TYPES.video_game` now maps to `urn:entity:videogame` |
+| "cricket" resolved to a town called Cricket (`urn:entity:locality`), rejected as a signal; Pokémon's TV entity is rejected too | `resolve()`: skip places/localities/people, prefer brands then media, keep the first candidate Qloo accepts (cached) |
+| Entity signals reflect **adult** fan audiences: cricket → adult political books, Minecraft → explicit rap | **Kid lens**: `filter.tags` per type — books `urn:tag:genre:media:childrens`, TV/films `urn:tag:genre:media:family`, artists `urn:tag:genre:music:instrumental` (wordless focus music) |
+| Games have no working kid tag; shooters (Apex, PUBG) and mature RPGs appear | Age-fit filter (Claude Haiku) is required for games; without a key, unknown games are dropped for under-10s |
+| Generic topics (football, space) resolve to arbitrary entities | Next: resolve topics to tags (`/v2/tags`, e.g. `urn:tag:genre:media:cricket`) and signal with `signal.interests.tags` |
+| The coverage script's keyword "adult" flag is noisy (flags Gravity Falls) | Hand-scoring is the real check; flags are a hint only |
 
 ## D-11 · Safety approach
 
@@ -351,6 +364,32 @@ As of 2026-10-16. Constraints that drive most choices:
 | System fonts only | No | Best | None, but loses the friendly display face |
 
 **Why:** two dev/build runs failed when Google Fonts couldn't be reached. A deploy shouldn't depend on that.
+
+## D-24 · Fading detection v2
+
+**Decision:** replace the single-week % rule with CUSUM + Beta-Binomial signals that must hold in both recent weeks, skip adult-marked break weeks, and add rest → probe instead of treating a faded interest as gone.
+
+| Option | One bad week | Break week | Real decline caught | Explainable |
+| --- | --- | --- | --- | --- |
+| **v2 (built)** | flagged 11% | 0% | 91% / 85% | Signals in plain words + confidence |
+| v1 single-week % drop | flagged 100% | 100% | 83% / 61% | A number only |
+| Bayesian changepoint (Adams & MacKay) | likely good | needs priors | likely good | Hard to explain in 3–8 points |
+
+Numbers: `lib/eval/fading-sim.ts`, 200 runs per scenario, seed 42; overall F1 0.52 → 0.91.
+**Why:** the payoff screen must be right *and* trustworthy; a false "fading" for a holiday or one bad day erodes parent trust fast. Rest-then-retry follows Kapoor et al. (2015): interest often recovers after a break.
+**Revisit if:** real logs show different patterns than the simulator; re-tune with real data.
+
+## D-25 · School card design
+
+**Decision:** one card per child: 1–4 targets, yes / not yet per school day, a home reward at a threshold. Parent and teacher use the same component and data; a summary goes to memory once per completed day.
+
+| Option | Evidence fit | Effort for adults | Notes |
+| --- | --- | --- | --- |
+| **Per day, 1–4 targets, shared** | DRC literature (Iznardo 2020; Fabiano 2025) | ~10 seconds a day | Works when the teacher isn't on SparkPath: the parent ticks from a paper note |
+| Per lesson period | Closer to classic DRCs | Higher for teachers | Later, if schools ask |
+| Points / behaviour feed (ClassDojo-style) | Weaker; public points criticised | Low | Not built: no public scores, no deductions |
+
+**Why:** the strongest-evidence intervention we found, and it links home and school through the same memory. Colours are never red; "Not yet" instead of "No".
 
 ---
 

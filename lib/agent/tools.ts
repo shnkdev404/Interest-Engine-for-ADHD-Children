@@ -9,6 +9,7 @@ import { z } from "zod";
 import { getDb, schema } from "@/db";
 import { addWeeks } from "@/lib/dates";
 import { discoverNextInterests } from "@/lib/discovery/next-interests";
+import { getDrc } from "@/lib/drc";
 import { getEngagement } from "@/lib/engagement/load";
 import type { EngagementReport } from "@/lib/engagement/score";
 import type { MemoryStore } from "@/lib/memory";
@@ -76,7 +77,7 @@ async function triedEntityIds(ctx: ToolContext): Promise<string[]> {
 async function entityIdFor(ctx: ToolContext, label: string): Promise<string | null> {
   const known = ctx.interests.find((i) => i.label.toLowerCase() === label.toLowerCase());
   if (known?.qlooEntityId) return known.qlooEntityId;
-  const [hit] = await ctx.qloo.search(label, 1);
+  const hit = await ctx.qloo.resolve(label);
   if (hit) remember(ctx, [hit]);
   return hit?.entityId ?? null;
 }
@@ -87,36 +88,58 @@ export const TOOLS = [
   tool({
     name: "get_child_profile",
     description:
-      "The child's nickname, age and interests (with status and how long they've had each). Call this first.",
+      "The child's nickname, age, interests (with status and how long they've had each) and their school card results for the last 5 school days. A 'dormant' interest is resting after fading; when retryDue is true, include exactly one short probe mission for it. Call this first.",
     input: z.object({}),
-    run: async (ctx) => ({
-      nickname: ctx.child.nickname,
-      age: ctx.child.ageYears,
-      interests: ctx.interests.map((i) => ({
-        label: i.label,
-        status: i.status,
-        since: i.startedAt,
-        hasTasteData: Boolean(i.qlooEntityId),
-      })),
-    }),
+    run: async (ctx) => {
+      const thisWeek = ctx.now.toISOString().slice(0, 10);
+      const card = await getDrc(ctx.child.id, ctx.now);
+      return {
+        nickname: ctx.child.nickname,
+        age: ctx.child.ageYears,
+        schoolCard: card.targets.length
+          ? {
+              last5SchoolDays: card.targets.map((t) => {
+                const vals = card.days.map((d) => d.entries[t.id]).filter((v) => v !== undefined);
+                return { target: t.text, met: vals.filter(Boolean).length, of: vals.length };
+              }),
+              homeReward: card.reward?.rewardText ?? null,
+            }
+          : null,
+        interests: ctx.interests.map((i) => ({
+          label: i.label,
+          status: i.status,
+          since: i.startedAt,
+          hasTasteData: Boolean(i.qlooEntityId),
+          ...(i.status === "dormant" && { restingUntil: i.resurfaceOn, retryDue: !!i.resurfaceOn && i.resurfaceOn <= thisWeek }),
+        })),
+      };
+    },
   }),
 
   tool({
     name: "get_engagement",
     description:
-      "Engagement over the last three finished weeks, computed from what the adult logged: minutes per interest, % change vs the previous two weeks, state (fading / holding / dipping / trial / insufficient), and which mission formats work or should be avoided. Numbers are exact; quote them, don't recompute.",
+      "Engagement from what the adult logged, up to 8 finished weeks (break weeks skipped): minutes per interest for the last 3 active weeks, % change, state (fading / holding / dipping / trial / insufficient) with the evidence behind it, and which mission formats work or should be avoided. Numbers are exact; quote them, don't recompute.",
     input: z.object({}),
     run: async (ctx) => {
       const r = await engagement(ctx);
       return {
         evaluatedWeek: r.weekStart,
+        breakWeeks: r.pausedWeeks,
         interests: r.interests.map((i) => ({
           label: i.label,
           minutesByWeek: i.minutes.map((m) => m.minutes),
           changePct: i.changePct,
           state: i.state,
-          negativeNote: i.negativeNote,
+          confidence: i.confidence,
+          evidence: {
+            sustainedDropInTimePerMission: i.signals.sustainedDrop,
+            completionDropProbability: i.signals.completionDropProb,
+            negativeNote: i.signals.negativeNote,
+            activeWeeks: i.activeWeeks,
+          },
         })),
+        restingInterests: r.dormant,
         formatsThatWork: r.formatsThatWork,
         formatsToAvoid: r.formatsToAvoid,
       };

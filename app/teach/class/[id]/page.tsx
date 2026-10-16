@@ -2,10 +2,12 @@ import { desc, eq, inArray } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { DailyCard } from "@/components/daily-card";
 import { HookCard } from "@/components/teach/hook-card";
 import { LessonForm } from "@/components/teach/lesson-form";
 import { PrintButton } from "@/components/teach/print-button";
 import { getDb, schema } from "@/db";
+import { getDrc, TARGET_SUGGESTIONS } from "@/lib/drc";
 import type { Hook } from "@/lib/hooks/generate";
 import { AccessError, requireClass } from "@/lib/session";
 import { interestColor } from "@/lib/ui";
@@ -15,8 +17,18 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 // The class's interests share one colour list so each interest keeps its hue.
-export default async function ClassPage({ params }: { params: Promise<{ id: string }> }) {
+// Teacher-side reward ideas for the school card (no per-child plan here).
+const CLASS_REWARDS = ["First pick at break time", "5 minutes of free choice", "Sticker for the chart", "Class helper tomorrow"];
+
+export default async function ClassPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ view?: string }>;
+}) {
   const { id } = await params;
+  const view = (await searchParams).view === "cards" ? "cards" : "hooks";
   let cls;
   try {
     cls = await requireClass(id);
@@ -40,6 +52,7 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
     .orderBy(desc(schema.lessons.createdAt))
     .limit(1);
   const hooks = (lesson?.hooks as Hook[] | undefined) ?? [];
+  const cards = view === "cards" ? await Promise.all(children.map(async (c) => ({ child: c, view: await getDrc(c.id) }))) : [];
   const isDemo = teacher?.email.endsWith("@demo.sparkpath.local") ?? false;
 
   return (
@@ -84,9 +97,45 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
             <p className="text-sm text-ink-muted">
               {teacher?.displayName} · Class {cls.name} · {children.length} children
             </p>
-            <h1 className="font-display text-2xl font-bold sm:text-3xl">One lesson, a hook for every child</h1>
+            <h1 className="font-display text-2xl font-bold sm:text-3xl">
+              {view === "cards" ? "Daily school cards" : "One lesson, a hook for every child"}
+            </h1>
+            <nav aria-label="Class views" className="mt-3 flex gap-2 print:hidden">
+              {(
+                [
+                  ["hooks", "Lesson hooks"],
+                  ["cards", "Daily cards"],
+                ] as const
+              ).map(([v, label]) => (
+                <Link
+                  key={v}
+                  href={v === "hooks" ? `/teach/class/${id}` : `/teach/class/${id}?view=cards`}
+                  aria-current={view === v ? "page" : undefined}
+                  className={
+                    view === v
+                      ? "min-h-11 rounded-full bg-ink px-4 py-2.5 text-sm font-semibold text-bg"
+                      : "min-h-11 rounded-full border border-line px-4 py-2.5 text-sm"
+                  }
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
           </header>
 
+          {view === "cards" ? (
+            <section aria-label="Daily school cards" className="space-y-3">
+              <p className="text-sm text-ink-muted">
+                Tick each child&apos;s targets once a day. Parents see the same card at home with the reward you agreed.
+              </p>
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {cards.map(({ child: c, view: v }) => (
+                  <DailyCard key={c.id} childId={c.id} nickname={c.nickname} view={v} suggestions={TARGET_SUGGESTIONS} rewardIdeas={CLASS_REWARDS} compact />
+                ))}
+              </div>
+            </section>
+          ) : (
+          <>
           <LessonForm classId={id} initialTopic={lesson?.topic ?? ""} />
 
           {lesson ? (
@@ -131,6 +180,8 @@ export default async function ClassPage({ params }: { params: Promise<{ id: stri
               </ul>
               <p className="mt-3 text-sm text-ink-muted">Pick a lesson above to get a hook for each child.</p>
             </section>
+          )}
+          </>
           )}
 
           {children

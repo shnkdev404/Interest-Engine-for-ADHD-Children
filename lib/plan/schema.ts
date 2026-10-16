@@ -11,7 +11,8 @@ export const FORMATS = [
   "screen_free",
   "quiz",
 ] as const;
-export const SUBJECTS = ["maths", "reading", "writing", "chore", "routine", "other"] as const;
+// "break" = a movement break before focused work (Pontifex 2013; RESEARCH.md Tier 1 #7).
+export const SUBJECTS = ["maths", "reading", "writing", "chore", "routine", "other", "break"] as const;
 
 export const QlooRef = z.object({
   entityId: z.string().min(1),
@@ -30,6 +31,12 @@ export const Mission = z.object({
   estMinutes: z.number().int().min(5).max(30),
   steps: z.array(z.string().min(2).max(160)).min(2).max(5),
   qlooRefs: z.array(QlooRef).max(3),
+  // Choice of two (Dunlap 1994): same job, a different interest-wrapped version.
+  alt: z
+    .object({ title: z.string().min(3).max(90), steps: z.array(z.string().min(2).max(160)).min(2).max(5) })
+    .optional(),
+  // Set on the one retry mission for a resting interest.
+  probe: z.boolean().optional(),
 });
 export type Mission = z.infer<typeof Mission>;
 
@@ -47,13 +54,20 @@ export const WeeklyPlan = z.object({
     })
     .optional(),
   missions: z.array(Mission).min(5).max(7),
-  readingList: z.array(Pick).min(3).max(5),
-  focusPlaylist: z.array(Pick).min(3).max(8),
+  // Aim for 3–5 and 5–8, but fewer is fine when Qloo has fewer: never invent.
+  readingList: z.array(Pick).max(5),
+  focusPlaylist: z.array(Pick).max(8),
   weekendActivity: z.object({
     title: z.string().min(3),
     why: z.string().min(5).max(240),
     qlooRefs: z.array(QlooRef).max(3),
   }),
+  // Immediate rewards, picked by the child right after a mission (Luman 2005).
+  // From Qloo where possible; never point deductions.
+  rewards: z
+    .array(z.object({ title: z.string().min(2).max(60), why: z.string().min(5).max(160), qlooRef: QlooRef.nullable() }))
+    .max(4)
+    .default([]), // plans saved before rewards existed read as []; new plans need 2+ (checkGrounding)
   nextInterests: z
     .array(
       z.object({
@@ -75,7 +89,7 @@ const ARTIST = "urn:entity:artist";
 export function checkGrounding(
   plan: WeeklyPlan,
   seen: ReadonlyMap<string, QlooRef>,
-  opts: { requireNextInterests: boolean },
+  opts: { requireNextInterests: boolean; probeDue?: string[] },
 ): string[] {
   const errors: string[] = [];
   const check = (ref: QlooRef, where: string, type?: string) => {
@@ -88,8 +102,18 @@ export function checkGrounding(
   plan.readingList.forEach((p, i) => check(p.qlooRef, `readingList[${i}]`, BOOK));
   plan.focusPlaylist.forEach((p, i) => check(p.qlooRef, `focusPlaylist[${i}]`, ARTIST));
   plan.weekendActivity.qlooRefs.forEach((r) => check(r, "weekendActivity"));
+  plan.rewards.forEach((r, i) => r.qlooRef && check(r.qlooRef, `rewards[${i}]`));
   plan.nextInterests.forEach((n, i) => n.qlooRefs.forEach((r) => check(r, `nextInterests[${i}]`)));
 
+  if (plan.rewards.length < 2) errors.push("rewards: offer 2-4 small rewards the child can pick after a mission");
+  if (!plan.missions.some((m) => m.subject === "break")) {
+    errors.push('missions: include one movement break (subject "break", format "movement") before a focused mission');
+  }
+  for (const label of opts.probeDue ?? []) {
+    if (!plan.missions.some((m) => m.probe && m.interest.toLowerCase() === label.toLowerCase())) {
+      errors.push(`missions: "${label}" is due a retry; include exactly one short probe mission for it (probe: true)`);
+    }
+  }
   if (opts.requireNextInterests && plan.nextInterests.length !== 3) {
     errors.push(`nextInterests: an interest is fading, so exactly 3 next interests are required (got ${plan.nextInterests.length})`);
   }

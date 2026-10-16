@@ -83,10 +83,6 @@ export async function discoverNextInterests(input: DiscoveryInput): Promise<{
     const fit = group.filter((e) => keptIds.has(e.entityId));
     if (fit.length < 2) continue;
 
-    // Skip near-duplicates of a group we already took.
-    const ids = new Set(fit.map((e) => e.entityId));
-    const dup = candidates.some((c) => c.entities.filter((e) => ids.has(e.entityId)).length / ids.size > 0.7);
-    if (dup) continue;
 
     const affinity = fit.reduce((s, e) => s + (rankScore.get(e.entityId) ?? 0), 0) / fit.length;
     const ageFit = fit.length / group.length;
@@ -95,12 +91,20 @@ export async function discoverNextInterests(input: DiscoveryInput): Promise<{
     const tagAffinity = tag.affinity ?? 1;
 
     // Same title across types (a book and its film) counts once.
-    const byName = fit
+    const top = fit
       .sort((a, b) => (rankScore.get(b.entityId) ?? 0) - (rankScore.get(a.entityId) ?? 0))
-      .filter((e, i, arr) => arr.findIndex((x) => x.name.toLowerCase() === e.name.toLowerCase()) === i);
+      .filter((e, i, arr) => arr.findIndex((x) => x.name.toLowerCase() === e.name.toLowerCase()) === i)
+      .slice(0, 5);
+
+    // Skip a group whose top picks mostly repeat one we already took: the
+    // parent would see the same titles under two names (found on live data).
+    const topIds = new Set(top.map((e) => e.entityId));
+    const dup = candidates.some((c) => c.entities.filter((e) => topIds.has(e.entityId)).length / topIds.size >= 0.5);
+    if (dup) continue;
+
     candidates.push({
       tag,
-      entities: byName.slice(0, 5),
+      entities: top,
       score: affinity * ageFit * novelty * formatFit * tagAffinity,
       parts: { affinity, ageFit, novelty, formatFit },
       sharedWith: signalEntities.filter((s) => s.tags.some((t) => t.id === tag.id || t.name === tag.name)).map((s) => s.label),

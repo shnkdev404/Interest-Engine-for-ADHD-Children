@@ -38,7 +38,7 @@ const MINUTES: Record<Format, number> = {
   build: 20, movement: 20, short_mission: 15, reading_short: 10, screen_free: 20, quiz: 10, reading_long: 25,
 };
 
-const TYPE_WORD: Record<string, string> = { video_game: "games", tv_show: "shows", book: "stories", movie: "films" };
+const TYPE_WORD: Record<string, string> = { videogame: "games", tv_show: "shows", book: "stories", movie: "films" };
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 const list = (xs: string[]) => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`);
 
@@ -69,27 +69,65 @@ export async function buildOfflinePlan(ctx: ToolContext): Promise<WeeklyPlan> {
     ? await call<{ candidates: { tasteTag: string; bridges: string[]; examples: Brief[] }[] }>("find_next_interests")
     : { candidates: [] };
 
+  // A movement break comes first, before focused work.
+  const missions: Mission[] = [
+    {
+      title: `Active warm-up: 10 minutes of ${hooks[0]} moves before homework`,
+      subject: "break",
+      interest: hooks[0],
+      format: "movement",
+      estMinutes: 10,
+      steps: [`Pick three moves from ${hooks[0]} or anything active`, "Do each one for about 3 minutes", "Drink some water, then start the next mission"],
+      qlooRefs: [],
+    },
+  ];
+
   // Missions: formats that work first, nothing to avoid; mostly holding hooks.
   const avoid = new Set(eng.formatsToAvoid);
   const formats = [...eng.formatsThatWork, "short_mission", "build", "movement", "screen_free"].filter(
     (f, i, a) => !avoid.has(f as Format) && a.indexOf(f) === i,
   ) as Format[];
   const used = new Set<string>();
-  const missions: Mission[] = [];
+  const fill = (title: string, i: string) => title.replace("{i}", i).replace(/^./, (c) => c.toUpperCase());
   for (let n = 0; missions.length < 5 && n < 20; n++) {
     const format = formats[n % formats.length];
     const interest = n === 3 && fading.length ? fading[0] : hooks[n % hooks.length];
     const t = TEMPLATES[format].find((x) => !used.has(x.title + interest)) ?? TEMPLATES[format][0];
     if (used.has(t.title + interest)) continue;
     used.add(t.title + interest);
+    // Choice of two: the same job wrapped in the other hook, or another format.
+    const otherHook = hooks.find((h) => h !== interest);
+    const altFormat = formats.find((f) => f !== format && TEMPLATES[f].some((x) => x.subject === t.subject));
+    const altTemplate = otherHook ? t : altFormat ? TEMPLATES[altFormat].find((x) => x.subject === t.subject) : undefined;
     missions.push({
-      title: t.title.replace("{i}", interest).replace(/^./, (c) => c.toUpperCase()),
+      title: fill(t.title, interest),
       subject: t.subject,
       interest,
       format,
       estMinutes: MINUTES[format],
       steps: t.steps,
       qlooRefs: [],
+      ...(altTemplate && { alt: { title: fill(altTemplate.title, otherHook ?? interest), steps: altTemplate.steps } }),
+    });
+  }
+
+  // A choice must be a real alternative, not another mission already in the plan.
+  const titles = new Set(missions.map((m) => m.title));
+  for (const m of missions) if (m.alt && titles.has(m.alt.title)) delete m.alt;
+
+  // A resting interest that's due gets one short, easy retry.
+  const thisWeek = ctx.now.toISOString().slice(0, 10);
+  const due = ctx.interests.filter((i) => i.status === "dormant" && !!i.resurfaceOn && i.resurfaceOn <= thisWeek);
+  for (const d of due.slice(0, 1)) {
+    missions.push({
+      title: `Quick retry: 10 minutes of ${d.label}, your way`,
+      subject: "other",
+      interest: d.label,
+      format: "short_mission",
+      estMinutes: 10,
+      steps: [`Choose any small ${d.label} thing to do`, "Do it for 10 minutes", "Tell us if you'd like more of it"],
+      qlooRefs: [],
+      probe: true,
     });
   }
 
@@ -105,12 +143,12 @@ export async function buildOfflinePlan(ctx: ToolContext): Promise<WeeklyPlan> {
 
   const nextInterests = next.candidates.slice(0, 3).map((c) => {
     const types = c.examples.map((e) => e.type ?? "");
-    const typeWord = TYPE_WORD[["video_game", "tv_show", "book", "movie"].find((t) => types.includes(t)) ?? ""] ?? "picks";
+    const typeWord = TYPE_WORD[["videogame", "tv_show", "book", "movie"].find((t) => types.includes(t)) ?? ""] ?? "picks";
     const ex = c.examples.slice(0, 2).map((e) => e.name);
     return {
       label: `${cap(c.tasteTag)} ${typeWord}`.slice(0, 40),
       bridge: `Fans of ${list([...fading, ...c.bridges.filter((b) => !fading.includes(b))])} also love ${list(ex)}.`.slice(0, 240),
-      starterMission: `Look at ${ex[0]} together, then make a ${c.tasteTag} mission out of it.`.slice(0, 160),
+      starterMission: `Look at ${ex[0]} together, then turn your favourite part into a 10-minute mission.`.slice(0, 160),
       qlooRefs: c.examples.slice(0, 3).map(toRef),
     };
   });
@@ -142,11 +180,21 @@ export async function buildOfflinePlan(ctx: ToolContext): Promise<WeeklyPlan> {
     weekendActivity: watch
       ? { title: `Watch ${watch.name} together, then act out a favourite scene`, why: `Fans of ${fans} also love it, and acting it out keeps it active.`, qlooRefs: [toRef(watch)] }
       : { title: `A ${hooks[0]} afternoon outdoors`, why: `${cap(hooks[0])} is holding strong.`, qlooRefs: [] },
+    rewards: [
+      ...(expanded.tv_show?.items ?? []).filter((e) => !isFading(e.name)).slice(0, 1).map((e) => ({
+        title: `An episode of ${e.name}`.slice(0, 60),
+        why: `Fans of ${fans} also love it.`,
+        qlooRef: toRef(e),
+      })),
+      ...books.slice(0, 1).map((b) => ({ title: `A chapter of ${b.name}`.slice(0, 60), why: "Read together, on the sofa.", qlooRef: toRef(b) })),
+      ...artists.slice(0, 1).map((a) => ({ title: `Dance break to ${a.name}`.slice(0, 60), why: "Two songs, loud.", qlooRef: toRef(a) })),
+      { title: `15 minutes of ${hooks[0]}`.slice(0, 60), why: `${cap(hooks[0])} is still a favourite.`, qlooRef: null },
+    ].slice(0, 4),
     nextInterests,
   };
 
   const parsed = WeeklyPlan.parse(plan);
-  const errors = checkGrounding(parsed, ctx.seen, { requireNextInterests: false });
+  const errors = checkGrounding(parsed, ctx.seen, { requireNextInterests: false, probeDue: due.slice(0, 1).map((d) => d.label) });
   if (errors.length) throw new Error(`Offline plan failed grounding: ${errors.join("; ")}`);
   return parsed;
 }

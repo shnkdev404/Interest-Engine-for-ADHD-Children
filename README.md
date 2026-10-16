@@ -41,6 +41,7 @@ Everything runs locally with no keys: Postgres falls back to embedded PGlite (`.
 | `npm run db:generate` | Generates a SQL migration after editing `db/schema.ts` |
 | `npm run plan` | Runs the planner agent for Arjun (needs `ANTHROPIC_API_KEY`); `--save` stores it, `--ask "…"` adds an adult request |
 | `npm run plan -- --tools-only` | Runs every agent tool once without the model: shows exactly what the agent sees |
+| `npm run eval` | Evaluation report: fading v1 vs v2 on simulated data, plan quality for six synthetic children (plus a judged AI-alone comparison with a Claude key) |
 | `npm run demo:prewarm` | Qloo self-test, template Arjun with this week's plan, Qloo cache for the teacher demo |
 | `npm run db:migrate` | Applies migrations to `DATABASE_URL` (also runs on every Vercel build) |
 | `npm test` | Unit tests (scorer, mock Qloo, lint, planner loop with a scripted fake model) |

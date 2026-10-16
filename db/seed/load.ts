@@ -5,12 +5,13 @@
 import { eq } from "drizzle-orm";
 
 import { getDb, schema } from "@/db";
+import { lastSchoolDays } from "@/lib/drc";
 import { addDays, addWeeks, lastCompletedWeek } from "@/lib/dates";
 import { getMemory } from "@/lib/memory";
 import { noteMemory, outcomeMemory } from "@/lib/memory/outcome";
 import { getQloo } from "@/lib/qloo/source";
 
-import { ARJUN, ARJUN_MISSIONS, type InterestKey } from "./arjun";
+import { ARJUN, ARJUN_DRC, ARJUN_MISSIONS, type InterestKey } from "./arjun";
 
 export async function seedArjun(
   now = new Date(),
@@ -52,7 +53,7 @@ export async function seedArjun(
 
   const interestIds = {} as Record<InterestKey, string>;
   for (const i of ARJUN.interests) {
-    const [match] = await qloo.search(i.label, 3).catch(() => []);
+    const match = await qloo.resolve(i.label).catch(() => null);
     const [row] = await db
       .insert(schema.interests)
       .values({
@@ -124,6 +125,27 @@ export async function seedArjun(
       }
     }
   }
+
+  // School card: three targets and the five school days before today.
+  const targets = await db
+    .insert(schema.drcTargets)
+    .values(ARJUN_DRC.targets.map((text, i) => ({ childId: child.id, text, sortOrder: i })))
+    .returning();
+  await db.insert(schema.drcRewards).values({ childId: child.id, threshold: ARJUN_DRC.threshold, rewardText: ARJUN_DRC.reward });
+  const today = now.toISOString().slice(0, 10);
+  const schoolDays = lastSchoolDays(now, 6).filter((d) => d !== today).slice(-5);
+  await db.insert(schema.drcEntries).values(
+    schoolDays.flatMap((day, i) =>
+      targets.map((t, k) => ({ targetId: t.id, childId: child.id, day, met: ARJUN_DRC.pattern[i][k], enteredBy: parent.id })),
+    ),
+  );
+  await memory.retain(child.id, {
+    context: "adult_note",
+    occurredAt: new Date(`${schoolDays.at(-1)}T15:30:00Z`),
+    content: `School card for ${child.nickname}, last five school days: ${ARJUN_DRC.targets
+      .map((t, k) => `${t} ${ARJUN_DRC.pattern.filter((d) => d[k]).length} of 5`)
+      .join("; ")}. Homework hand-in is the hardest one.`,
+  });
 
   return { child, logs, evaluated, memoryMode: memory.mode, qlooMode: qloo.mode };
 }

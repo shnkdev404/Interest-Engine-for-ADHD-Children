@@ -19,11 +19,14 @@ export function trimEntity(raw: unknown): QlooEntity | null {
 
   const props = obj(r.properties);
   const query = obj(r.query);
-  const types = Array.isArray(r.types)
-    ? r.types.filter((t): t is string => typeof t === "string")
-    : str(r.type)
-      ? [r.type as string]
-      : [];
+  // Live insights return type "urn:entity" with the real type in `subtype`
+  // ("urn:entity:book"); /search returns `types`. Most specific goes first.
+  const rawTypes = [
+    ...(str(r.subtype) ? [r.subtype as string] : []),
+    ...(str(r.type) ? [r.type as string] : []),
+    ...(Array.isArray(r.types) ? r.types.filter((t): t is string => typeof t === "string") : []),
+  ];
+  const types = [...new Set(rawTypes)].sort((a, b) => b.split(":").length - a.split(":").length);
 
   const image = obj(props.image);
   const tags: QlooTag[] = Array.isArray(r.tags)
